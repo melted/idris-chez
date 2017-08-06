@@ -33,7 +33,7 @@ start = "(" ++ sname (MN 0 "runMain") ++ ")"
 
 doCodegen :: (Name, SDecl) -> String
 doCodegen (n, SFun n' as locs exp) = 
-    defineFun (sname n) (map sname as) (compileExpr exp)
+    defineFun (sname n) (map (loc . fst) (zip [0..] as)) (compileExpr exp)
 
 compileExpr :: SExp -> String
 compileExpr (SV v) = compileVar v
@@ -42,8 +42,8 @@ compileExpr (SLet var exp body) = slet (compileVar var) (compileExpr exp) (compi
 compileExpr (SUpdate var exp) = sset (compileVar var) (compileExpr exp)
 -- TODO: SCon check for scheme primitive types and use them instead
 compileExpr (SCon _ t n xs) = sexp ("list":show t:compileVars xs)
-compileExpr (SCase ctype var alts) = compileCase (Just ctype) var alts
-compileExpr (SChkCase var alts) = compileCase Nothing var alts
+compileExpr (SCase ctype var alts) = compileCase var alts
+compileExpr (SChkCase var alts) = compileCase var alts
 compileExpr (SProj var i) = sexp ["list-ref", compileVar var, show i]
 compileExpr (SConst c) = compileConst c
 compileExpr (SForeign name ret args) = compileForeign name ret args 
@@ -52,13 +52,31 @@ compileExpr SNothing = "'()"
 compileExpr (SError what) = sexp ["error", "idris", what]
 
 compileVar :: LVar -> String
-compileVar (Loc i) = "v" ++ show i
+compileVar (Loc i) = loc i
 compileVar (Glob n) = sname n
 
 compileVars = map compileVar
 
-compileCase :: Maybe CaseType -> LVar -> [SAlt] -> String
-compileCase _ _ _ = "Unimplemented case"
+-- TODO: Add case where all alts are const
+compileCase :: LVar -> [SAlt] -> String
+compileCase var alts = cond $ map (compileAlt var) salts
+    where
+        salts = sortBy caseOrder alts
+        caseOrder (SDefaultCase _) _ = GT
+        caseOrder _ (SDefaultCase _) = LT
+        caseOrder _ _ = EQ
+
+-- TODO: Special case scheme primitive types
+compileAlt :: LVar -> SAlt -> String
+compileAlt var (SConCase lv t n args body) = sexp [sexp ["=", car $ compileVar var,show t], project 1 lv args body]
+    where
+        project _ _ [] body = compileExpr body
+        project i v (n:ns) body = slet (loc v) 
+                                    (sexp ["list-ref", compileVar var, show i]) 
+                                    (project (i+1) (v+1) ns body) 
+compileAlt var (SConstCase c body) = sexp [sexp ["eq?", compileVar var, compileConst c], compileExpr body]
+compileAlt _ (SDefaultCase body) = sexp ["else", compileExpr body]
+
 
 compileConst :: Const -> String
 compileConst _ = "const"
@@ -76,8 +94,12 @@ compileOp _ _ = "op"
 sname :: Name -> String
 sname n = "|" ++ showCG n ++ "|"
 
+loc i = "v" ++ show i
+
 sexp xs = "(" ++ intercalate " " xs ++ ")" 
-defineFun name args body = sexp ["define", sexp (name:args), body]
+defineFun name args body = sexp ["define", sexp (name:args), body] ++ "\n"
 call f args = sexp (sname f:args)
 slet n exp body = sexp ["let", sexp [sexp [n, exp]], body]
 sset n exp = sexp ["set!", n, exp]
+cond xs = sexp ("cond":xs)
+car l = sexp ["car", l]
