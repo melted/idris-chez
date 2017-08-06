@@ -93,7 +93,53 @@ compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign _ _ _ = "ffi"
 
 compileOp :: PrimFn -> [LVar] -> String
+compileOp (LPlus _) xs = op "+" xs
+compileOp (LMinus _) xs = op "-" xs
+compileOp (LTimes _) xs = op "*" xs
+compileOp (LUDiv _) xs = op "quotient" xs
+compileOp (LSDiv _) xs = op "/" xs
+compileOp (LURem _) xs = op "remainder" xs
+compileOp (LSRem _) xs = op "remainder" xs
+compileOp (LAnd _) xs = op "bitwise-and" xs
+compileOp (LOr _) xs = op "bitwise-ior" xs
+compileOp (LXor _) xs = op "bitwise-xor" xs
+compileOp (LCompl ITBig) xs = op "bitwise-not" xs
+compileOp (LCompl ty) x = op "bitwise-xor" [x, full ty]
+compileOp (LSHL ty) [x, y] = op "bitwise-arithmetic-shift-left" [makeUnsigned ty x, y]
+compileOp (LLSHR ty) [x, y] = op "bitwise-arithmetic-shift-right" [makeUnsigned ty x, y]
+compileOp (LASHR ty) xs = op "bitwise-arithmetic-shift-right" xs
+compileOp (LEq _) xs = op "=" xs
+compileOp (LLt ty) xs = op "<" (map (makeUnsigned ty) xs)
+compileOp (LLe ty) xs = op "<=" (map (makeUnsigned ty) xs)
+compileOp (LGt ty) xs = op ">" (map (makeUnsigned ty) xs)
+compileOp (LGe ty) xs = op ">=" (map (makeUnsigned ty) xs)
+compileOp (LSLt _) xs = op "<" xs
+compileOp (LSLe _) xs = op "<=" xs
+compileOp (LSGt _) xs = op ">" xs
+compileOp (LSGe _) xs = op ">=" xs
+compileOp (LSExt _ _) xs = xs
+compileOp (LZExt ty _) [x] = makeUnsigned ty x
+compileOp (LTrunc from to) [x] = op "bitwise-and" [x, full to]
+compileOp LStrConcat xs =  op "string-append" xs
+compileOp LStrLt xs = op "string<?" xs
+compileOp LStrEq xs = op "string=?" xs
+compileOp LStrLen xs =  op "string-length" xs
+
+
 compileOp _ _ = "op"
+
+full (ITFixed IT8) = "#xff"
+full (ITFixed IT16) = "#xffff"
+full (ITFixed IT32) = "#xffffffff"
+full (ITFixed IT64) = "#xffffffffffffffff"
+full ITNative = "#xffffffffffffffff"
+full ITChar = "#xffffffff"
+
+op f args = call f (compileVars args) 
+
+-- Convert negative numbers to two-complements positive
+-- TODO: fill in
+makeUnsigned ty x = x
 
 -- Output Helpers
 --
