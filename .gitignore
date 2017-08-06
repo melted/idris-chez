@@ -2,6 +2,7 @@
 /cabal.sandbox.config
 /dist
 /dist-newstyle
+test/tests
 
 *.exe
 *.o

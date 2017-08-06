@@ -146,7 +146,7 @@ compileOp LFFloor xs = op "floor" xs
 compileOp LFCeil xs = op "ceiling" xs 
 compileOp LFNegate xs = op "-" xs
 compileOp LStrHead [x] = call "string-ref" [compileVar x, "0"] 
-compileOp LStrTail [x] = call "substring" [compileVar x, "1"] 
+compileOp LStrTail [x] = call "substring" [compileVar x, "1", call "string-length" [compileVar x]] 
 compileOp LStrCons [c, x] = call "string-append" [call "string" [compileVar c], compileVar x] 
 compileOp LStrIndex xs = op "string-ref" xs 
 compileOp LStrRev [x] = call "list->string" [call "reverse" [call "string->list" [compileVar x]]] 
@@ -175,6 +175,7 @@ op f args = call f (compileVars args)
 
 externalOp :: Name -> [LVar] -> String
 externalOp _ _ = "Ooops"
+
 -- Convert negative numbers to two-complements positive
 -- TODO: fill in
 makeUnsigned ty x = x
