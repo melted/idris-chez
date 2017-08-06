@@ -117,14 +117,21 @@ compileOp (LSLt _) xs = op "<" xs
 compileOp (LSLe _) xs = op "<=" xs
 compileOp (LSGt _) xs = op ">" xs
 compileOp (LSGe _) xs = op ">=" xs
-compileOp (LSExt _ _) xs = xs
+compileOp (LSExt _ _) [x] = x
 compileOp (LZExt ty _) [x] = makeUnsigned ty x
 compileOp (LTrunc from to) [x] = op "bitwise-and" [x, full to]
 compileOp LStrConcat xs =  op "string-append" xs
 compileOp LStrLt xs = op "string<?" xs
 compileOp LStrEq xs = op "string=?" xs
 compileOp LStrLen xs =  op "string-length" xs
-
+compileOp (LIntFloat ty) [x] = x
+compileOp (LFloatInt ty) xs = op "floor" xs
+compileOp (LIntStr _) xs = op "number->string" xs
+compileOp (LStrInt _) xs = op "string->number" xs
+compileOp LFloatStr xs = op "number->string" xs
+compileOp LStrFloat xs = op "string->number" xs
+compileOp (LIntCh _) xs = op "integer->char" xs
+compileOp (LChInt _) xs = op "char->integer" xs
 
 compileOp _ _ = "op"
 
