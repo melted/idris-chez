@@ -102,9 +102,9 @@ compileOp (LURem _) xs = op "remainder" xs
 compileOp (LSRem _) xs = op "remainder" xs
 compileOp (LAnd _) xs = op "bitwise-and" xs
 compileOp (LOr _) xs = op "bitwise-ior" xs
-compileOp (LXor _) xs = op "bitwise-xor" xs
+compileOp (LXOr _) xs = op "bitwise-xor" xs
 compileOp (LCompl ITBig) xs = op "bitwise-not" xs
-compileOp (LCompl ty) x = op "bitwise-xor" [x, full ty]
+compileOp (LCompl ty) [x] = call "bitwise-xor" [compileVar x, full ty]
 compileOp (LSHL ty) [x, y] = op "bitwise-arithmetic-shift-left" [makeUnsigned ty x, y]
 compileOp (LLSHR ty) [x, y] = op "bitwise-arithmetic-shift-right" [makeUnsigned ty x, y]
 compileOp (LASHR ty) xs = op "bitwise-arithmetic-shift-right" xs
@@ -117,23 +117,52 @@ compileOp (LSLt _) xs = op "<" xs
 compileOp (LSLe _) xs = op "<=" xs
 compileOp (LSGt _) xs = op ">" xs
 compileOp (LSGe _) xs = op ">=" xs
-compileOp (LSExt _ _) [x] = x
-compileOp (LZExt ty _) [x] = makeUnsigned ty x
-compileOp (LTrunc from to) [x] = op "bitwise-and" [x, full to]
+compileOp (LSExt _ _) [x] = compileVar x
+compileOp (LZExt ty _) [x] = compileVar $ makeUnsigned ty x
+compileOp (LTrunc from to) [x] = call "bitwise-and" [compileVar x, full to]
 compileOp LStrConcat xs =  op "string-append" xs
 compileOp LStrLt xs = op "string<?" xs
 compileOp LStrEq xs = op "string=?" xs
 compileOp LStrLen xs =  op "string-length" xs
-compileOp (LIntFloat ty) [x] = x
+compileOp (LIntFloat ty) [x] = compileVar x
 compileOp (LFloatInt ty) xs = op "floor" xs
 compileOp (LIntStr _) xs = op "number->string" xs
 compileOp (LStrInt _) xs = op "string->number" xs
 compileOp LFloatStr xs = op "number->string" xs
 compileOp LStrFloat xs = op "string->number" xs
-compileOp (LIntCh _) xs = op "integer->char" xs
 compileOp (LChInt _) xs = op "char->integer" xs
+compileOp (LIntCh _) xs = op "integer->char" xs
+compileOp (LBitCast _ _) [x] = compileVar x
+compileOp LFExp xs = op "exp" xs 
+compileOp LFLog xs = op "log" xs
+compileOp LFSin xs = op "sin" xs 
+compileOp LFCos xs = op "cos" xs
+compileOp LFTan xs = op "tan" xs 
+compileOp LFASin xs = op "asin" xs 
+compileOp LFACos xs = op "acos" xs 
+compileOp LFATan xs = op "atan" xs
+compileOp LFSqrt xs = op "sqrt" xs 
+compileOp LFFloor xs = op "floor" xs 
+compileOp LFCeil xs = op "ceiling" xs 
+compileOp LFNegate xs = op "-" xs
+compileOp LStrHead [x] = call "string-ref" [compileVar x, "0"] 
+compileOp LStrTail [x] = call "substring" [compileVar x, "1"] 
+compileOp LStrCons [c, x] = call "string-append" [call "string" [compileVar c], compileVar x] 
+compileOp LStrIndex xs = op "string-ref" xs 
+compileOp LStrRev [x] = call "list->string" [call "reverse" [call "string->list" [compileVar x]]] 
+compileOp LStrSubstr [off, l, x] = call "substring" [compileVar x, compileVar off, call "+" [compileVar off, compileVar l]]
+compileOp LReadStr [_] = call "get-line" [sexp ["current-input-port"]] 
+compileOp LWriteStr [_, x] = call "put-string" [sexp ["current-output-port"], compileVar x]
+compileOp LSystemInfo [x] = call "idris-systeminfo" [compileVar x] 
+compileOp LFork xs = ignore
+compileOp LPar xs = ignore
+compileOp LCrash [x] = call "error" ["idris", compileVar x]
+compileOp LNoOp _ = ""
+compileOp (LExternal n) xs = externalOp n xs 
 
 compileOp _ _ = "op"
+
+ignore = ""
 
 full (ITFixed IT8) = "#xff"
 full (ITFixed IT16) = "#xffff"
@@ -144,6 +173,8 @@ full ITChar = "#xffffffff"
 
 op f args = call f (compileVars args) 
 
+externalOp :: Name -> [LVar] -> String
+externalOp _ _ = "Ooops"
 -- Convert negative numbers to two-complements positive
 -- TODO: fill in
 makeUnsigned ty x = x
