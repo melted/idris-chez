@@ -1,0 +1,11 @@
+/.cabal-sandbox
+/cabal.sandbox.config
+/dist
+/dist-newstyle
+
+*.exe
+*.o
+*~
+.vscode
+
+*.ibc

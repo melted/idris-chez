@@ -1,0 +1,34 @@
+Name:           idris-chez
+Version:        0.0.1
+License:        BSD3
+Author:         Niklas Larsson <niklas@mm.st>
+Maintainer:     Niklas Larsson <niklas@mm.st>
+Build-Type:     Simple
+Cabal-Version:  >= 1.22
+
+Data-files:     rts/rts.ss
+
+Executable idris-codegen-chez
+  Main-is:        Main.hs
+  hs-source-dirs: src
+
+  Build-depends:  idris
+                , base
+                , containers
+                , directory
+                , filepath
+                , haskeline >= 0.7
+                , mtl
+                , transformers
+                , text
+
+  other-modules: IRTS.CodegenChez,
+                 Paths_idris_chez
+
+  if os(windows)
+     build-depends: Win32 < 2.4
+  else
+     build-depends: unix < 2.8
+   
+  ghc-prof-options: -auto-all -caf-all
+  ghc-options:      -threaded -rtsopts -funbox-strict-fields
