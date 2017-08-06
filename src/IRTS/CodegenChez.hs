@@ -76,7 +76,18 @@ compileAlt _ (SDefaultCase body) = sexp ["else", compileExpr body]
 
 
 compileConst :: Const -> String
-compileConst _ = "const"
+compileConst (I i) = show i
+compileConst (BI bi) = show bi
+compileConst (Fl d) = show d
+compileConst (Ch c) = "#\\"++[c]
+compileConst (Str s) = show s
+compileConst (B8 w) = show w
+compileConst (B16 w) = show w
+compileConst (B32 w) = show w
+compileConst (B64 w) = show w
+-- type const, won't be used, hopefully
+compileConst t | isTypeConst t = "#f"
+compileConst x = error $ "Unimplemented const " ++ show x
 
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign _ _ _ = "ffi"
