@@ -37,7 +37,7 @@ doCodegen (n, SFun n' as locs exp) =
 
 compileExpr :: SExp -> String
 compileExpr (SV v) = compileVar v
-compileExpr (SApp _ n args) = call n (compileVars args)
+compileExpr (SApp _ n args) = call (sname n) (compileVars args)
 compileExpr (SLet var exp body) = slet (compileVar var) (compileExpr exp) (compileExpr body)
 compileExpr (SUpdate var exp) = sset (compileVar var) (compileExpr exp)
 -- TODO: SCon check for scheme primitive types and use them instead
@@ -68,12 +68,9 @@ compileCase var alts = cond $ map (compileAlt var) salts
 
 -- TODO: Special case scheme primitive types
 compileAlt :: LVar -> SAlt -> String
-compileAlt var (SConCase lv t n args body) = sexp [sexp ["=", car $ compileVar var,show t], project 1 lv args body]
+compileAlt var (SConCase lv t n args body) = sexp [call "=" [car $ compileVar var,show t], project 1 lv args body]
     where
-        project _ _ [] body = compileExpr body
-        project i v (n:ns) body = slet (loc v) 
-                                    (sexp ["list-ref", compileVar var, show i]) 
-                                    (project (i+1) (v+1) ns body) 
+        project i v ns body = apply (lambda (map (loc . fst) (zip [v..] ns)) (compileExpr body)) (cdr $ compileVar var) 
 compileAlt var (SConstCase c body) = sexp [sexp ["eq?", compileVar var, compileConst c], compileExpr body]
 compileAlt _ (SDefaultCase body) = sexp ["else", compileExpr body]
 
@@ -98,8 +95,12 @@ loc i = "v" ++ show i
 
 sexp xs = "(" ++ intercalate " " xs ++ ")" 
 defineFun name args body = sexp ["define", sexp (name:args), body] ++ "\n"
-call f args = sexp (sname f:args)
+call f args = sexp (f:args)
+
 slet n exp body = sexp ["let", sexp [sexp [n, exp]], body]
-sset n exp = sexp ["set!", n, exp]
+sset n exp = call "set!" [n, exp]
 cond xs = sexp ("cond":xs)
-car l = sexp ["car", l]
+car l = call "car" [l]
+cdr l = call "cdr" [l]
+lambda args body = sexp ["lambda", sexp args, body]
+apply f l = call "apply" [f, l]
