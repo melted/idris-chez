@@ -24,9 +24,11 @@ codegenChez :: CodeGenerator
 codegenChez ci = do let out = map doCodegen (simpleDecls ci) ++ [start]++["(exit 0)\n"]
                     let code = concat out
                     dir <- getDataDir
-                    let shebang = "#!/usr/bin/env scheme-script\n"
+                    let top = "#!/usr/bin/env scheme-script\n" ++
+                              "#!chezscheme\n" ++
+                              "(import (chezscheme))\n"
                     rtslib <- readFile $ dir ++ "/rts/rts.ss"
-                    writeFile (outputFile ci) (shebang ++ rtslib ++ code)
+                    writeFile (outputFile ci) (top ++ rtslib ++ code)
 
 start :: String
 start = "(" ++ sname (MN 0 "runMain") ++ ")"
@@ -245,7 +247,7 @@ makeUnsigned ty x = call "if" [call "negative?" [compileVar x],
 
 
 externalOp :: Name -> [LVar] -> String
-externalOp _ _ = "Ooops"
+externalOp _ _ = "'()"
 
 -- Output Helpers
 --
