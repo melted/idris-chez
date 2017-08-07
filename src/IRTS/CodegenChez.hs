@@ -73,9 +73,13 @@ compileAlt :: LVar -> SAlt -> String
 compileAlt var (SConCase lv t n args body) = sexp [call "=" [car $ compileVar var,show t], project 1 lv args body]
     where
         project i v ns body = apply (lambda (map (loc . fst) (zip [v..] ns)) (compileExpr body)) (cdr $ compileVar var) 
-compileAlt var (SConstCase c body) = sexp [call "eqv?" [compileVar var, compileConst c], compileExpr body]
+compileAlt var (SConstCase c body) = sexp [compileCompare var c, compileExpr body]
 compileAlt _ (SDefaultCase body) = sexp ["else", compileExpr body]
 
+compileCompare :: LVar -> Const -> String
+compileCompare var c@(Ch _) = call "char=?" [compileVar var, compileConst c]
+compileCompare var c@(Str _) = call "string=?" [compileVar var, compileConst c]
+compileCompare var c = call "=" [compileVar var, compileConst c] 
 
 compileConst :: Const -> String
 compileConst (I i) = show i
