@@ -241,13 +241,47 @@ charToInt x = call "char->integer" [compileVar x]
 
 -- Convert negative numbers to two-complements positive
 makeUnsigned :: IntTy -> LVar -> String
+makeUnsigned ITBig x = call "abs" [compileVar x]
 makeUnsigned ty x = call "if" [call "negative?" [compileVar x],
                          call "+" [compileVar x, range ty],
                          compileVar x]
 
 
 externalOp :: Name -> [LVar] -> String
-externalOp _ _ = "'()"
+-- TODO: we pretend that a port is a FILE pointer. Is that illusion possible to maintain?
+-- We certainly will need to intercept the C declarations in the prelude. Problem is that
+-- the user could try to use that pointer for other C functions, that they import on the side.
+-- Let it be, or intercept all of them?   
+externalOp n [_, x] | n == sUN "prim__readFile" = call "get-string-all" [compileVar x]
+externalOp n [_, len, x] | n == sUN "prim__readChars" = call "get-string-n" [compileVar len, compileVar x]
+externalOp n [_, x, s] | n == sUN "prim__writeFile" = call "put-string" [compileVar x, compileVar s]
+externalOp n [] | n == sUN "prim__stdin" = call "current-input-port" []
+externalOp n [] | n == sUN "prim__stdout" = call "current-output-port" []
+externalOp n [] | n == sUN "prim__stderr" = call "current-error-port" []
+externalOp n [_] | n == sUN "prim__vm" = "'vm" -- just a token, let's elaborate if needed
+externalOp n [] | n == sUN "prim__null" = "0"
+externalOp n [x, y] | n == sUN "prim__eqPtr" = call "eq?" [compileVar x, compileVar y]
+externalOp n [x, y] | n == sUN "prim__eqManagedPtr" = call "eq?" [car (compileVar x), car (compileVar y)]
+-- externalOp n [x] | n == sUN "prim__registerPtr" = call "eq?" [compileVar x, compileVar y]
+externalOp n [_, x, y] | n == sUN "prim__peek8" = call "foreign-ref" ["unsigned-8", compileVar x, compileVar y]
+externalOp n [_, x, y, z] | n == sUN "prim__poke8" = call "foreign-set!" ["unsigned-8", compileVar x, compileVar y, compileVar z]
+externalOp n [_, x, y] | n == sUN "prim__peek16" = call "foreign-ref" ["unsigned-16", compileVar x, compileVar y]
+externalOp n [_, x, y, z] | n == sUN "prim__poke16" = call "foreign-set!" ["unsigned-16", compileVar x, compileVar y, compileVar z]
+externalOp n [_, x, y] | n == sUN "prim__peek32" = call "foreign-ref" ["unsigned-32", compileVar x, compileVar y]
+externalOp n [_, x, y, z] | n == sUN "prim__poke32" = call "foreign-set!" ["unsigned-32", compileVar x, compileVar y, compileVar z]
+externalOp n [_, x, y] | n == sUN "prim__peek64" = call "foreign-ref" ["unsigned-64", compileVar x, compileVar y]
+externalOp n [_, x, y, z] | n == sUN "prim__poke64" = call "foreign-set!" ["unsigned-64", compileVar x, compileVar y, compileVar z]
+externalOp n [_, x, y] | n == sUN "prim__peekPtr" = call "foreign-ref" ["void*", compileVar x, compileVar y]
+externalOp n [_, x, y, z] | n == sUN "prim__pokePtr" = call "foreign-set!" ["void*", compileVar x, compileVar y, compileVar z]
+externalOp n [_, x, y] | n == sUN "prim__peekSingle" = call "foreign-ref" ["float", compileVar x, compileVar y]
+externalOp n [_, x, y, z] | n == sUN "prim__pokeSingle" = call "foreign-set!" ["float", compileVar x, compileVar y, compileVar z]
+externalOp n [_, x, y] | n == sUN "prim__peekDouble" = call "foreign-ref" ["double", compileVar x, compileVar y]
+externalOp n [_, x, y, z] | n == sUN "prim__pokeDouble" = call "foreign-set!" ["double", compileVar x, compileVar y, compileVar z]
+externalOp n [x] | n == sUN "prim__asPtr" = call "car" [compileVar x]
+externalOp n [] | n == sUN "prim__sizeofPtr" = call "foreign-sizeof" ["void*"]
+externalOp n [x, y] | n == sUN "prim__ptrOffset" = call "+" [compileVar x, compileVar y]
+
+externalOp n _ = call "error" ["idris", "Unimplemented external primitive " ++ show n]
 
 -- Output Helpers
 --
