@@ -58,20 +58,21 @@ compileVar (Glob n) = sname n
 compileVars = map compileVar
 
 -- TODO: Add case where all alts are const
+-- TODO: if-stat for 1 alt plus default?
 compileCase :: LVar -> [SAlt] -> String
-compileCase var alts = cond $ map (compileAlt var) salts
+compileCase var alts = cond $ map (compileAlt var) (salts alts)
     where
-        salts = sortBy caseOrder alts
-        caseOrder (SDefaultCase _) _ = GT
-        caseOrder _ (SDefaultCase _) = LT
-        caseOrder _ _ = EQ
+        salts [] = []
+        salts (sd@(SDefaultCase _):_) = [sd]
+        salts (x:xs) = x:(salts xs)
+
 
 -- TODO: Special case scheme primitive types
 compileAlt :: LVar -> SAlt -> String
 compileAlt var (SConCase lv t n args body) = sexp [call "=" [car $ compileVar var,show t], project 1 lv args body]
     where
         project i v ns body = apply (lambda (map (loc . fst) (zip [v..] ns)) (compileExpr body)) (cdr $ compileVar var) 
-compileAlt var (SConstCase c body) = sexp [sexp ["eq?", compileVar var, compileConst c], compileExpr body]
+compileAlt var (SConstCase c body) = sexp [call "eq?" [compileVar var, compileConst c], compileExpr body]
 compileAlt _ (SDefaultCase body) = sexp ["else", compileExpr body]
 
 
