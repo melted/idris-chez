@@ -20,10 +20,10 @@ import Paths_idris_chez
 
 
 codegenChez :: CodeGenerator
-codegenChez ci = do let out = map doCodegen (simpleDecls ci) ++ [start]
+codegenChez ci = do let out = map doCodegen (simpleDecls ci) ++ [start]++["(exit 0)\n"]
                     let code = concat out
                     dir <- getDataDir
-                    let shebang = "#!/usr/bin/env scheme\n"
+                    let shebang = "#!/usr/bin/env scheme-script\n"
                     rtslib <- readFile $ dir ++ "/rts/rts.ss"
                     writeFile (outputFile ci) (shebang ++ rtslib ++ code)
 

@@ -87,7 +87,7 @@ parseArgs args = do
             et <- enumTests
             return (et, [])
     let (testOpts, idOpts) = parseFlags rest
-    return $ Config testOpts (idOpts++["--codegen", "llvm"]) tests
+    return $ Config testOpts (idOpts++["--codegen", "chez"]) tests
 
 -- "bash" needed because Haskell has cmd as the default shell on windows, and
 -- we also want to run the process with another current directory, so we get
