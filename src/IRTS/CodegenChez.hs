@@ -49,7 +49,7 @@ compileExpr (SConst c) = compileConst c
 compileExpr (SForeign name ret args) = compileForeign name ret args 
 compileExpr (SOp prim args) = compileOp prim args
 compileExpr SNothing = "'()"
-compileExpr (SError what) = sexp ["error", "idris", what]
+compileExpr (SError what) = sexp ["error", show "idris", show what]
 
 compileVar :: LVar -> String
 compileVar (Loc i) = loc i
@@ -72,7 +72,7 @@ compileAlt :: LVar -> SAlt -> String
 compileAlt var (SConCase lv t n args body) = sexp [call "=" [car $ compileVar var,show t], project 1 lv args body]
     where
         project i v ns body = apply (lambda (map (loc . fst) (zip [v..] ns)) (compileExpr body)) (cdr $ compileVar var) 
-compileAlt var (SConstCase c body) = sexp [call "eq?" [compileVar var, compileConst c], compileExpr body]
+compileAlt var (SConstCase c body) = sexp [call "eqv?" [compileVar var, compileConst c], compileExpr body]
 compileAlt _ (SDefaultCase body) = sexp ["else", compileExpr body]
 
 
@@ -94,6 +94,35 @@ compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign _ _ _ = "ffi"
 
 compileOp :: PrimFn -> [LVar] -> String
+-- char is not like other numeric types in scheme
+-- arithmetic on them should be rare, so represent
+-- them like scheme chars anyway
+compileOp (LPlus (ATInt ITChar)) xs = charOp "+" xs
+compileOp (LMinus (ATInt ITChar)) xs = charOp "-" xs
+compileOp (LTimes (ATInt ITChar)) xs = charOp "*" xs
+compileOp (LUDiv ITChar) xs = charOp "quotient" xs
+compileOp (LSDiv (ATInt ITChar)) xs = charOp "/" xs
+compileOp (LURem ITChar) xs = charOp "remainder" xs
+compileOp (LSRem (ATInt ITChar)) xs = charOp "remainder" xs
+compileOp (LAnd ITChar) xs = charOp "bitwise-and" xs
+compileOp (LOr ITChar) xs = charOp "bitwise-ior" xs
+compileOp (LXOr ITChar) xs = charOp "bitwise-xor" xs
+compileOp (LCompl ITChar) [x] = call "integer->char" [call "bitwise-xor" [call "char->integer" [compileVar x], full ITChar]]
+-- we don't have to worry about negative chars but we need keep the result in 32 bits
+compileOp (LSHL ITChar) xs = charShift True "bitwise-arithmetic-shift-left" xs 
+compileOp (LLSHR ITChar) xs = charShift False "bitwise-arithmetic-shift-right" xs
+compileOp (LASHR ITChar) xs = charShift False "bitwise-arithmetic-shift-right" xs
+compileOp (LEq (ATInt ITChar)) xs = cmp "char=?" xs
+compileOp (LLt ITChar) xs = cmp "char<?" xs
+compileOp (LLe ITChar) xs = cmp "char<=?" xs
+compileOp (LGt ITChar) xs = cmp "char>?" xs
+compileOp (LGe ITChar) xs = cmp "char>=?" xs
+compileOp (LSLt (ATInt ITChar)) xs = cmp "char<?" xs
+compileOp (LSLe (ATInt ITChar)) xs = cmp "char<=?" xs
+compileOp (LSGt (ATInt ITChar)) xs = cmp "char>?" xs
+compileOp (LSGe (ATInt ITChar)) xs = cmp "char>=?" xs
+
+-- All other numeric types are just a scheme number
 compileOp (LPlus _) xs = op "+" xs
 compileOp (LMinus _) xs = op "-" xs
 compileOp (LTimes _) xs = op "*" xs
@@ -106,24 +135,24 @@ compileOp (LOr _) xs = op "bitwise-ior" xs
 compileOp (LXOr _) xs = op "bitwise-xor" xs
 compileOp (LCompl ITBig) xs = op "bitwise-not" xs
 compileOp (LCompl ty) [x] = call "bitwise-xor" [compileVar x, full ty]
-compileOp (LSHL ty) [x, y] = op "bitwise-arithmetic-shift-left" [makeUnsigned ty x, y]
-compileOp (LLSHR ty) [x, y] = op "bitwise-arithmetic-shift-right" [makeUnsigned ty x, y]
+compileOp (LSHL ty) [x, y] = call "bitwise-arithmetic-shift-left" [makeUnsigned ty x, compileVar y]
+compileOp (LLSHR ty) [x, y] = call "bitwise-arithmetic-shift-right" [makeUnsigned ty x, compileVar y]
 compileOp (LASHR ty) xs = op "bitwise-arithmetic-shift-right" xs
-compileOp (LEq _) xs = op "=" xs
-compileOp (LLt ty) xs = op "<" (map (makeUnsigned ty) xs)
-compileOp (LLe ty) xs = op "<=" (map (makeUnsigned ty) xs)
-compileOp (LGt ty) xs = op ">" (map (makeUnsigned ty) xs)
-compileOp (LGe ty) xs = op ">=" (map (makeUnsigned ty) xs)
-compileOp (LSLt _) xs = op "<" xs
-compileOp (LSLe _) xs = op "<=" xs
-compileOp (LSGt _) xs = op ">" xs
-compileOp (LSGe _) xs = op ">=" xs
+compileOp (LEq _) xs = cmp "=" xs
+compileOp (LLt ty) xs = ucmp ty "<" xs
+compileOp (LLe ty) xs = ucmp ty "<=" xs
+compileOp (LGt ty) xs = ucmp ty ">" xs
+compileOp (LGe ty) xs = ucmp ty ">=" xs
+compileOp (LSLt _) xs = cmp "<" xs
+compileOp (LSLe _) xs = cmp "<=" xs
+compileOp (LSGt _) xs = cmp ">" xs
+compileOp (LSGe _) xs = cmp ">=" xs
 compileOp (LSExt _ _) [x] = compileVar x
-compileOp (LZExt ty _) [x] = compileVar $ makeUnsigned ty x
+compileOp (LZExt ty _) [x] =  makeUnsigned ty x
 compileOp (LTrunc from to) [x] = call "bitwise-and" [compileVar x, full to]
 compileOp LStrConcat xs =  op "string-append" xs
-compileOp LStrLt xs = op "string<?" xs
-compileOp LStrEq xs = op "string=?" xs
+compileOp LStrLt xs = cmp "string<?" xs
+compileOp LStrEq xs = cmp "string=?" xs
 compileOp LStrLen xs =  op "string-length" xs
 compileOp (LIntFloat ty) [x] = compileVar x
 compileOp (LFloatInt ty) xs = op "floor" xs
@@ -155,31 +184,48 @@ compileOp LStrSubstr [off, l, x] = call "substring" [compileVar x, compileVar of
 compileOp LReadStr [_] = call "get-line" [sexp ["current-input-port"]] 
 compileOp LWriteStr [_, x] = call "put-string" [sexp ["current-output-port"], compileVar x]
 compileOp LSystemInfo [x] = call "idris-systeminfo" [compileVar x] 
-compileOp LFork xs = ignore
-compileOp LPar xs = ignore
-compileOp LCrash [x] = call "error" ["idris", compileVar x]
-compileOp LNoOp _ = ""
+compileOp LFork [x] = compileVar x
+compileOp LPar [x] = compileVar x
+compileOp LCrash [x] = call "error" [show "idris", compileVar x]
+compileOp LNoOp xs = compileVar (last xs)
 compileOp (LExternal n) xs = externalOp n xs 
 
 compileOp _ _ = "op"
 
-ignore = ""
+width (ITFixed IT8) = 8
+width (ITFixed IT16) = 16
+width (ITFixed IT32) = 32
+width (ITFixed IT64) = 64
+width ITNative = 64
+width ITChar = 32
 
-full (ITFixed IT8) = "#xff"
-full (ITFixed IT16) = "#xffff"
-full (ITFixed IT32) = "#xffffffff"
-full (ITFixed IT64) = "#xffffffffffffffff"
-full ITNative = "#xffffffffffffffff"
-full ITChar = "#xffffffff"
+range ty = show $ 2^(width ty)
+full ty = show (2^(width ty) - 1) 
 
-op f args = call f (compileVars args) 
+op f args = call f (compileVars args)
+
+cmp f args = call "if" [op f args, "1", "0"]
+
+ucmp ty f args = call "if" [call f (map (makeUnsigned ty) args), "1", "0"] 
+
+charOp o args = call "integer->char" [call o (map charToInt args)]
+
+charShift True o [x, y] = call "integer->char" 
+                            [call "and"
+                              [call o [charToInt x, compileVar y]], full ITChar]
+charShift False o [x, y] = call "integer->char" [call o [charToInt x, compileVar y]]
+charToInt x = call "char->integer" [compileVar x]
+
+
+-- Convert negative numbers to two-complements positive
+makeUnsigned :: IntTy -> LVar -> String
+makeUnsigned ty x = call "if" [call "negative?" [compileVar x],
+                         call "+" [compileVar x, range ty],
+                         compileVar x]
+
 
 externalOp :: Name -> [LVar] -> String
 externalOp _ _ = "Ooops"
-
--- Convert negative numbers to two-complements positive
--- TODO: fill in
-makeUnsigned ty x = x
 
 -- Output Helpers
 --
