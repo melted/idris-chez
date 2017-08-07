@@ -14,6 +14,7 @@ import Data.Maybe
 import Data.Char
 import Data.String(IsString, fromString)
 
+import Numeric (showHex)
 import qualified Data.Text as T
 
 import Paths_idris_chez
@@ -39,7 +40,7 @@ compileExpr :: SExp -> String
 compileExpr (SV v) = compileVar v
 compileExpr (SApp _ n args) = call (sname n) (compileVars args)
 compileExpr (SLet var exp body) = slet (compileVar var) (compileExpr exp) (compileExpr body)
-compileExpr (SUpdate var exp) = sset (compileVar var) (compileExpr exp)
+compileExpr (SUpdate var exp) = compileExpr exp
 -- TODO: SCon check for scheme primitive types and use them instead
 compileExpr (SCon _ t n xs) = sexp ("list":show t:compileVars xs)
 compileExpr (SCase ctype var alts) = compileCase var alts
@@ -80,8 +81,8 @@ compileConst :: Const -> String
 compileConst (I i) = show i
 compileConst (BI bi) = show bi
 compileConst (Fl d) = show d
-compileConst (Ch c) = "#\\"++[c]
-compileConst (Str s) = show s
+compileConst (Ch c) = schemeChar c
+compileConst (Str s) = schemeString s
 compileConst (B8 w) = show w
 compileConst (B16 w) = show w
 compileConst (B32 w) = show w
@@ -89,6 +90,21 @@ compileConst (B64 w) = show w
 -- type const, won't be used, hopefully
 compileConst t | isTypeConst t = "#f"
 compileConst x = error $ "Unimplemented const " ++ show x
+
+-- Translate a string literal to Scheme format
+-- Let's make it easy for us and render everything
+-- outside printable ascii stuff as unicode escapes
+schemeString :: String -> String
+schemeString s = "\"" ++ sift s ++ "\""
+    where
+        sift "" = ""
+        sift ('\\':cs) = "\\\\" ++ sift cs
+        sift ('"':cs) = "\\\"" ++ sift cs
+        sift (c:cs) | isAscii c && isPrint c = c:sift cs
+        sift (c:cs) = "\\x" ++ showHex (ord c) "" ++ ";" ++ sift cs
+
+schemeChar :: Char -> String
+schemeChar c = "#\\x" ++ showHex (ord c) "" ++ " "
 
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign _ _ _ = "ffi"
