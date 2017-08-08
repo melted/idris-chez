@@ -206,7 +206,7 @@ compileOp LStrSubstr xs = op "idris-substring" xs
 compileOp LReadStr [_] = call "get-line" [sexp ["current-input-port"]] 
 compileOp LWriteStr [_, x] = call "put-string" [sexp ["current-output-port"], compileVar x]
 compileOp LSystemInfo [x] = call "idris-systeminfo" [compileVar x] 
-compileOp LFork [x] = compileVar x
+compileOp LFork [x] = call "fork-thread" [lambda [] (call (sname (sMN 0 "EVAL")) [compileVar x])]
 compileOp LPar [x] = compileVar x
 compileOp LCrash [x] = call "error" [show "idris", compileVar x]
 compileOp LNoOp xs = compileVar (last xs)
@@ -251,7 +251,10 @@ externalOp :: Name -> [LVar] -> String
 -- TODO: we pretend that a port is a FILE pointer. Is that illusion possible to maintain?
 -- We certainly will need to intercept the C declarations in the prelude. Problem is that
 -- the user could try to use that pointer for other C functions, that they import on the side.
--- Let it be, or intercept all of them?   
+-- Let it be, or intercept all of them?
+-- Turns out that Ptr doesn't escape Prelude.File, only problem is that common C functions 
+-- are called. I wouldn't want to stop their usage everywhere, so I would have to filter
+-- on module to intercept.
 externalOp n [_, x] | n == sUN "prim__readFile" = call "get-string-all" [compileVar x]
 externalOp n [_, len, x] | n == sUN "prim__readChars" = call "get-string-n" [compileVar len, compileVar x]
 externalOp n [_, x, s] | n == sUN "prim__writeFile" = call "put-string" [compileVar x, compileVar s]
