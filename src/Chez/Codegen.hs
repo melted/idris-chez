@@ -17,11 +17,14 @@ import Data.String(IsString, fromString)
 import Numeric (showHex)
 import qualified Data.Text as T
 
+import Chez.Compatibility (fixup)
+
 import Paths_idris_chez
 
 
 codegenChez :: CodeGenerator
-codegenChez ci = do let out = map doCodegen (simpleDecls ci) ++ [start]++["(exit 0)\n"]
+codegenChez ci = do let decls = fixup (simpleDecls ci)
+                    let out = map doCodegen decls ++ [start]++["(exit 0)\n"]
                     let code = concat out
                     dir <- getDataDir
                     let top = "#!/usr/bin/env scheme-script\n" ++

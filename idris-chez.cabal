@@ -22,8 +22,10 @@ Executable idris-codegen-chez
                 , transformers
                 , text
 
-  other-modules: Chez.Codegen,
-                 Paths_idris_chez
+  other-modules: 
+    Chez.Codegen,
+    Chez.Compatibility, 
+    Paths_idris_chez
 
   if os(windows)
      build-depends: Win32 < 2.4
