@@ -9,7 +9,8 @@ import Idris.Main
 
 import IRTS.CodegenCommon
 import IRTS.Compiler
-import IRTS.CodegenChez
+
+import Chez.Codegen
 
 import System.Environment
 import System.Exit

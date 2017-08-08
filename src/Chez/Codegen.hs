@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module IRTS.CodegenChez(codegenChez) where
+module Chez.Codegen(codegenChez) where
 
 import IRTS.CodegenCommon
 import IRTS.Lang
@@ -113,6 +113,9 @@ schemeChar :: Char -> String
 schemeChar c = "#\\x" ++ showHex (ord c) "" ++ " "
 
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
+compileForeign rty (FStr name) args = sexp $ [call "foreign-procedure"
+                                         [name, sexp (map (ffiType . fst) args), ffiType rty]] ++
+                                          map (compileVar . snd) args
 compileForeign _ _ _ = "ffi"
 
 compileOp :: PrimFn -> [LVar] -> String
@@ -306,3 +309,55 @@ car l = call "car" [l]
 cdr l = call "cdr" [l]
 lambda args body = sexp ["lambda", sexp args, body]
 apply f l = call "apply" [f, l]
+
+
+-- deconstruct FDesc to FType and, FType to Chez cffi types.
+
+ffiType = toChezCType . toFType
+
+toFType :: FDesc -> FType
+toFType (FCon c)
+    | c == sUN "C_Str" = FString
+    | c == sUN "C_Float" = FArith ATFloat
+    | c == sUN "C_Ptr" = FPtr
+    | c == sUN "C_MPtr" = FManagedPtr
+    | c == sUN "C_CData" = FCData
+    | c == sUN "C_Unit" = FUnit
+toFType (FApp c [_,ity])
+    | c == sUN "C_IntT" = FArith (toAType ity)
+    | c == sUN "C_FnT" = toFunType ity
+toFType (FApp c [_])
+    | c == sUN "C_Any" = FAny
+toFType t = FAny
+
+toAType (FCon i)
+    | i == sUN "C_IntChar" = ATInt ITChar
+    | i == sUN "C_IntNative" = ATInt ITNative
+    | i == sUN "C_IntBits8" = ATInt (ITFixed IT8)
+    | i == sUN "C_IntBits16" = ATInt (ITFixed IT16)
+    | i == sUN "C_IntBits32" = ATInt (ITFixed IT32)
+    | i == sUN "C_IntBits64" = ATInt (ITFixed IT64)
+toAType t = error (show t ++ " not defined in toAType")
+
+toFunType (FApp c [_,ity])
+    | c == sUN "C_FnBase" = FFunction
+    | c == sUN "C_FnIO" = FFunctionIO
+toFunType (FApp c [_,_,_,ity])
+    | c == sUN "C_Fn" = toFunType ity
+toFunType _ = FAny
+
+toChezCType :: FType -> String
+toChezCType FString = "utf-8"
+toChezCType FPtr = "void*"
+toChezCType FManagedPtr = "void*"
+toChezCType FCData = "void*"
+toChezCType FUnit = "void*"
+toChezCType FAny = "void*"
+toChezCType (FArith ATFloat) = "double"
+toChezCType (FArith (ATInt ITChar)) = "wchar_t"
+toChezCType (FArith (ATInt ITNative)) = "int"
+toChezCType (FArith (ATInt (ITFixed IT8))) = "unsigned-8"
+toChezCType (FArith (ATInt (ITFixed IT16))) = "unsigned-16"
+toChezCType (FArith (ATInt (ITFixed IT32))) = "unsigned-32"
+toChezCType (FArith (ATInt (ITFixed IT64))) = "unsigned-64"
+toChezCType _ = "void*"
