@@ -1,9 +1,10 @@
 
 
-module Chez.Compatibility (fixup) where
+module Chez.Compatibility (fixup, intercept) where
 
 import Idris.Core.TT
 
+import IRTS.Lang
 import IRTS.Simplified
 
 -- This module is where we sweep all the ugly things under the rug.
@@ -17,6 +18,13 @@ import IRTS.Simplified
 -- and friends should as clearly be left as is.
 
 -- TODO: implement it
+
+-- Change the sdecls, this is used when we need
+-- to be aware of the context.
 fixup :: [(Name, SDecl)] -> [(Name, SDecl)]
 fixup decls = decls
+
+-- Check a foreign call
+intercept :: FDesc -> FDesc -> [(FDesc, LVar)] -> Maybe String
+intercept _ _ _ = Nothing
 

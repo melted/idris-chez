@@ -17,7 +17,7 @@ import Data.String(IsString, fromString)
 import Numeric (showHex)
 import qualified Data.Text as T
 
-import Chez.Compatibility (fixup)
+import Chez.Compatibility (fixup, intercept)
 
 import Paths_idris_chez
 
@@ -52,7 +52,8 @@ compileExpr (SCase ctype var alts) = compileCase var alts
 compileExpr (SChkCase var alts) = compileCase var alts
 compileExpr (SProj var i) = sexp ["list-ref", compileVar var, show i]
 compileExpr (SConst c) = compileConst c
-compileExpr (SForeign name ret args) = compileForeign name ret args 
+compileExpr (SForeign name ret args) = compileForeign name ret args `fromMaybe`
+                                            intercept name ret args
 compileExpr (SOp prim args) = compileOp prim args
 compileExpr SNothing = "'()"
 compileExpr (SError what) = sexp ["error", show "idris", show what]
@@ -254,13 +255,6 @@ makeUnsigned ty x = call "if" [call "negative?" [compileVar x],
 
 
 externalOp :: Name -> [LVar] -> String
--- TODO: we pretend that a port is a FILE pointer. Is that illusion possible to maintain?
--- We certainly will need to intercept the C declarations in the prelude. Problem is that
--- the user could try to use that pointer for other C functions, that they import on the side.
--- Let it be, or intercept all of them?
--- Turns out that Ptr doesn't escape Prelude.File, only problem is that common C functions 
--- are called. I wouldn't want to stop their usage everywhere, so I would have to filter
--- on module to intercept.
 externalOp n [_, x] | n == sUN "prim__readFile" = call "get-string-all" [compileVar x]
 externalOp n [_, len, x] | n == sUN "prim__readChars" = call "get-string-n" [compileVar len, compileVar x]
 externalOp n [_, x, s] | n == sUN "prim__writeFile" = call "put-string" [compileVar x, compileVar s]
@@ -271,7 +265,7 @@ externalOp n [_] | n == sUN "prim__vm" = "'vm" -- just a token, let's elaborate 
 externalOp n [] | n == sUN "prim__null" = "0"
 externalOp n [x, y] | n == sUN "prim__eqPtr" = call "eq?" [compileVar x, compileVar y]
 externalOp n [x, y] | n == sUN "prim__eqManagedPtr" = call "eq?" [car (compileVar x), car (compileVar y)]
--- externalOp n [x] | n == sUN "prim__registerPtr" = call "eq?" [compileVar x, compileVar y]
+externalOp n [x] | n == sUN "prim__registerPtr" = compileVar x
 externalOp n [_, x, y] | n == sUN "prim__peek8" = call "foreign-ref" ["unsigned-8", compileVar x, compileVar y]
 externalOp n [_, x, y, z] | n == sUN "prim__poke8" = call "foreign-set!" ["unsigned-8", compileVar x, compileVar y, compileVar z]
 externalOp n [_, x, y] | n == sUN "prim__peek16" = call "foreign-ref" ["unsigned-16", compileVar x, compileVar y]
