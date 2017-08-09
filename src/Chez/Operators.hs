@@ -47,7 +47,6 @@ compileOp (LSGe (ATInt ITChar)) xs = cmp "char>=?" xs
 
 -- All other numeric types are just a scheme number
 -- TODO, constrain to correct ranges
--- TODO: Bit manipulation in basic011 has started failing
 compileOp (LPlus ATFloat) xs = op "+" xs
 compileOp (LPlus (ATInt ITBig)) xs = op "+" xs
 compileOp (LPlus (ATInt it)) xs = clamp it (op "+" xs)
@@ -70,9 +69,9 @@ compileOp (LXOr _) xs = op "bitwise-xor" xs
 compileOp (LCompl ITBig) xs = op "bitwise-not" xs
 compileOp (LCompl ty) [x] = call "bitwise-xor" [compileVar x, full ty]
 compileOp (LSHL ITBig) xs = op "bitwise-arithmetic-shift-left" xs 
-compileOp (LSHL ty@(ITFixed _)) [x, y] = call "and" [call "bitwise-arithmetic-shift-left" 
+compileOp (LSHL ty@(ITFixed _)) [x, y] = call "bitwise-and" [call "bitwise-arithmetic-shift-left" 
                                             [compileVar x, compileVar y], full ty]
-compileOp (LSHL ty) [x, y] = call "and" [(makeSigned ty (call "bitwise-arithmetic-shift-left" 
+compileOp (LSHL ty) [x, y] = call "bitwise-and" [(makeSigned ty (call "bitwise-arithmetic-shift-left" 
                                             [makeUnsigned ty (compileVar x), compileVar y])), full ty]
 compileOp (LLSHR ty@(ITFixed _)) xs = op "bitwise-arithmetic-shift-right" xs
 compileOp (LLSHR ty) [x, y] = makeSigned ty (call "bitwise-arithmetic-shift-right" [makeUnsigned ty (compileVar x), compileVar y])
