@@ -177,7 +177,7 @@ externalOp n [_] | n == sUN "prim__vm" = "'vm" -- just a token, let's elaborate 
 externalOp n [] | n == sUN "prim__null" = "0"
 externalOp n [x, y] | n == sUN "prim__eqPtr" = call "eq?" [compileVar x, compileVar y]
 externalOp n [x, y] | n == sUN "prim__eqManagedPtr" = call "eq?" [car (compileVar x), car (compileVar y)]
-externalOp n [x] | n == sUN "prim__registerPtr" = compileVar x
+externalOp n [x, y] | n == sUN "prim__registerPtr" = compileVar x
 externalOp n [_, x, y] | n == sUN "prim__peek8" = call "foreign-ref" ["'unsigned-8", compileVar x, compileVar y]
 externalOp n [_, x, y, z] | n == sUN "prim__poke8" = call "foreign-set!" ["'unsigned-8", compileVar x, compileVar y, compileVar z]
 externalOp n [_, x, y] | n == sUN "prim__peek16" = call "foreign-ref" ["'unsigned-16", compileVar x, compileVar y]
@@ -196,4 +196,4 @@ externalOp n [x] | n == sUN "prim__asPtr" = call "car" [compileVar x]
 externalOp n [] | n == sUN "prim__sizeofPtr" = call "foreign-sizeof" ["'void*"]
 externalOp n [x, y] | n == sUN "prim__ptrOffset" = call "+" [compileVar x, compileVar y]
 
-externalOp n _ = call "error" ["idris", "Unimplemented external primitive " ++ show n]
+externalOp n _ = call "error" [show $ "idris", show $ "Unimplemented external primitive " ++ show n]
