@@ -47,11 +47,21 @@ compileOp (LSGe (ATInt ITChar)) xs = cmp "char>=?" xs
 
 -- All other numeric types are just a scheme number
 -- TODO, constrain to correct ranges
-compileOp (LPlus _) xs = op "+" xs
-compileOp (LMinus _) xs = op "-" xs
-compileOp (LTimes _) xs = op "*" xs
+-- TODO: Bit manipulation in basic011 has started failing
+compileOp (LPlus ATFloat) xs = op "+" xs
+compileOp (LPlus (ATInt ITBig)) xs = op "+" xs
+compileOp (LPlus (ATInt it)) xs = clamp it (op "+" xs)
+compileOp (LMinus ATFloat) xs = op "-" xs
+compileOp (LMinus (ATInt ITBig)) xs = op "-" xs
+compileOp (LMinus (ATInt it)) xs = clamp it (op "-" xs)
+compileOp (LTimes ATFloat) xs = op "*" xs
+compileOp (LTimes (ATInt ITBig)) xs = op "*" xs
+compileOp (LTimes (ATInt it)) xs = clamp it (op "*" xs)
+
 compileOp (LUDiv _) xs = op "quotient" xs
-compileOp (LSDiv _) xs = op "/" xs
+compileOp (LSDiv ATFloat) xs = op "/" xs
+compileOp (LSDiv (ATInt _)) xs = op "quotient" xs
+
 compileOp (LURem _) xs = op "remainder" xs
 compileOp (LSRem _) xs = op "remainder" xs
 compileOp (LAnd _) xs = op "bitwise-and" xs
@@ -59,8 +69,13 @@ compileOp (LOr _) xs = op "bitwise-ior" xs
 compileOp (LXOr _) xs = op "bitwise-xor" xs
 compileOp (LCompl ITBig) xs = op "bitwise-not" xs
 compileOp (LCompl ty) [x] = call "bitwise-xor" [compileVar x, full ty]
-compileOp (LSHL ty) [x, y] = call "bitwise-arithmetic-shift-left" [makeUnsigned ty x, compileVar y]
-compileOp (LLSHR ty) [x, y] = call "bitwise-arithmetic-shift-right" [makeUnsigned ty x, compileVar y]
+compileOp (LSHL ITBig) xs = op "bitwise-arithmetic-shift-left" xs 
+compileOp (LSHL ty@(ITFixed _)) [x, y] = call "and" [call "bitwise-arithmetic-shift-left" 
+                                            [compileVar x, compileVar y], full ty]
+compileOp (LSHL ty) [x, y] = call "and" [(makeSigned ty (call "bitwise-arithmetic-shift-left" 
+                                            [makeUnsigned ty (compileVar x), compileVar y])), full ty]
+compileOp (LLSHR ty@(ITFixed _)) xs = op "bitwise-arithmetic-shift-right" xs
+compileOp (LLSHR ty) [x, y] = makeSigned ty (call "bitwise-arithmetic-shift-right" [makeUnsigned ty (compileVar x), compileVar y])
 compileOp (LASHR ty) xs = op "bitwise-arithmetic-shift-right" xs
 compileOp (LEq _) xs = cmp "=" xs
 compileOp (LLt ty) xs = ucmp ty "<" xs
@@ -71,8 +86,11 @@ compileOp (LSLt _) xs = cmp "<" xs
 compileOp (LSLe _) xs = cmp "<=" xs
 compileOp (LSGt _) xs = cmp ">" xs
 compileOp (LSGe _) xs = cmp ">=" xs
+compileOp (LSExt from@(ITFixed _) to@(ITFixed _)) [x] = makeUnsigned to $ makeSigned from $ compileVar x
+compileOp (LSExt ty@(ITFixed _) _) [x] = makeSigned ty $ compileVar x
 compileOp (LSExt _ _) [x] = compileVar x
-compileOp (LZExt ty _) [x] =  makeUnsigned ty x
+compileOp (LZExt (ITFixed _) _) [x] = compileVar x
+compileOp (LZExt ty _) [x] =  makeUnsigned ty (compileVar x)
 compileOp (LTrunc from to) [x] = call "bitwise-and" [compileVar x, full to]
 compileOp LStrConcat xs =  op "string-append" xs
 compileOp LStrLt xs = cmp "string<?" xs
@@ -114,14 +132,14 @@ compileOp LCrash [x] = call "error" [show "idris", compileVar x]
 compileOp LNoOp xs = compileVar (last xs)
 compileOp (LExternal n) xs = externalOp n xs 
 
-compileOp _ _ = "op"
+compileOp op _ = error "Unknown SOp: " ++ show op
 
 
 op f args = call f (compileVars args)
 
 cmp f args = call "if" [op f args, "1", "0"]
 
-ucmp ty f args = call "if" [call f (map (makeUnsigned ty) args), "1", "0"] 
+ucmp ty f args = call "if" [call f (map (makeUnsigned ty . compileVar) args), "1", "0"] 
 
 charOp o args = call "integer->char" [call o (map charToInt args)]
 
@@ -131,14 +149,22 @@ charShift True o [x, y] = call "integer->char"
 charShift False o [x, y] = call "integer->char" [call o [charToInt x, compileVar y]]
 charToInt x = call "char->integer" [compileVar x]
 
+clamp :: IntTy -> String -> String
+clamp ITBig o = o
+clamp ty@(ITFixed _) o = call "modulo" [o, range ty]
+clamp it o = call "-" [call "modulo" [call "+" [halfrange it, o], range it], halfrange it]
 
 -- Convert negative numbers to two-complements positive
-makeUnsigned :: IntTy -> LVar -> String
-makeUnsigned ITBig x = call "abs" [compileVar x]
-makeUnsigned ty x = call "if" [call "negative?" [compileVar x],
-                         call "+" [compileVar x, range ty],
-                         compileVar x]
+-- TODO: take string instead of LVar
+makeUnsigned :: IntTy -> String -> String
+-- TODO: ITBig doesn't really make sense here
+makeUnsigned ITBig x = x
+makeUnsigned ty x = slet "n" x (call "if" [call "negative?" ["n"],
+                                call "+" ["n", range ty],"n"])
 
+makeSigned :: IntTy -> String -> String
+makeSigned ty o = slet "n" o (call "if" [call ">" ["n", halfrange ty],
+                                call "-" ["n", range ty], "n"])
 
 externalOp :: Name -> [LVar] -> String
 externalOp n [_, x] | n == sUN "prim__readFile" = call "get-string-all" [compileVar x]

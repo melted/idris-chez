@@ -17,7 +17,10 @@ width ITNative = 64
 width ITChar = 32
 
 range ty = show $ 2^(width ty)
-full ty = show (2^(width ty) - 1) 
+full ty = show (2^(width ty) - 1)
+
+halfrange ty = show $ 2^(width ty-1)
+
 
 -- Output Helpers
 --
