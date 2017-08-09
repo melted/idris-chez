@@ -24,7 +24,9 @@ Executable idris-codegen-chez
 
   other-modules: 
     Chez.Codegen,
-    Chez.Compatibility, 
+    Chez.Compatibility,
+    Chez.Operators,
+    Chez.Util
     Paths_idris_chez
 
   if os(windows)

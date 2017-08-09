@@ -7,6 +7,8 @@ import Idris.Core.TT
 import IRTS.Lang
 import IRTS.Simplified
 
+import Chez.Util
+
 -- This module is where we sweep all the ugly things under the rug.
 -- The aim of idris-chez is to be fully compatible with the C backend,
 -- but as some functionality in the libraries depend on the C rts or
