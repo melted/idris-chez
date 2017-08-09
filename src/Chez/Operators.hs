@@ -195,4 +195,4 @@ externalOp n [x] | n == sUN "prim__asPtr" = call "car" [compileVar x]
 externalOp n [] | n == sUN "prim__sizeofPtr" = call "foreign-sizeof" ["'void*"]
 externalOp n [x, y] | n == sUN "prim__ptrOffset" = call "+" [compileVar x, compileVar y]
 
-externalOp n _ = call "error" [show $ "idris", show $ "Unimplemented external primitive " ++ show n]
+externalOp n _ = call "error" [sstr "idris", sstr $ "Unimplemented external primitive " ++ show n]

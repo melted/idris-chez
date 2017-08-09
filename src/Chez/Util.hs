@@ -6,7 +6,10 @@ import Idris.Core.TT
 
 import IRTS.Lang
 
+import Data.Char
 import Data.List
+
+import Numeric (showHex)
 
 -- Size of numbers
 width (ITFixed IT8) = 8
@@ -43,6 +46,21 @@ cdr l = call "cdr" [l]
 lambda args body = sexp ["lambda", sexp args, body]
 apply f l = call "apply" [f, l]
 
+sstr = schemeString 
+-- Translate a string literal to Scheme format
+-- Let's make it easy for us and render everything
+-- outside printable ascii stuff as unicode escapes
+schemeString :: String -> String
+schemeString s = "\"" ++ sift s ++ "\""
+    where
+        sift "" = ""
+        sift ('\\':cs) = "\\\\" ++ sift cs
+        sift ('"':cs) = "\\\"" ++ sift cs
+        sift (c:cs) | isAscii c && isPrint c = c:sift cs
+        sift (c:cs) = "\\x" ++ showHex (ord c) "" ++ ";" ++ sift cs
+
+schemeChar :: Char -> String
+schemeChar c = "#\\x" ++ showHex (ord c) "" ++ " "
 
 -- deconstruct FDesc to FType and, FType to Chez cffi types.
 

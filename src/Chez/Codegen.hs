@@ -58,7 +58,7 @@ compileExpr (SForeign name ret args) = compileForeign name ret args `fromMaybe`
                                             intercept name ret args
 compileExpr (SOp prim args) = compileOp prim args
 compileExpr SNothing = "'()"
-compileExpr (SError what) = sexp ["error", show "idris", show what]
+compileExpr (SError what) = sexp ["error", sstr "idris", sstr what]
 
 
 
@@ -99,23 +99,10 @@ compileConst (B64 w) = show w
 compileConst t | isTypeConst t = "#f"
 compileConst x = error $ "Unimplemented const " ++ show x
 
--- Translate a string literal to Scheme format
--- Let's make it easy for us and render everything
--- outside printable ascii stuff as unicode escapes
-schemeString :: String -> String
-schemeString s = "\"" ++ sift s ++ "\""
-    where
-        sift "" = ""
-        sift ('\\':cs) = "\\\\" ++ sift cs
-        sift ('"':cs) = "\\\"" ++ sift cs
-        sift (c:cs) | isAscii c && isPrint c = c:sift cs
-        sift (c:cs) = "\\x" ++ showHex (ord c) "" ++ ";" ++ sift cs
 
-schemeChar :: Char -> String
-schemeChar c = "#\\x" ++ showHex (ord c) "" ++ " "
 
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign rty (FStr name) args = sexp $ [call "foreign-procedure"
                                          [name, sexp (map (ffiType . fst) args), ffiType rty]] ++
                                           map (compileVar . snd) args
-compileForeign _ _ _ = "ffi"
+compileForeign _ _ _ = error "Illegal ffi call"
