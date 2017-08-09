@@ -28,5 +28,7 @@ fixup decls = decls
 
 -- Check a foreign call
 intercept :: FDesc -> FDesc -> [(FDesc, LVar)] -> Maybe String
+-- isNull used from from Prelude.Strings
+intercept _ (FStr "isNull") [(_, p)] = Just $ predicate (call "=" ["0", compileVar p])
 intercept _ _ _ = Nothing
 

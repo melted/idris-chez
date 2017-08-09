@@ -8,13 +8,6 @@ import IRTS.Lang
 
 import Chez.Util
 
-compileVar :: LVar -> String
-compileVar (Loc i) = loc i
-compileVar (Glob n) = sname n
-
-compileVars = map compileVar
-
-
 
 compileOp :: PrimFn -> [LVar] -> String
 -- char is not like other numeric types in scheme
@@ -134,36 +127,6 @@ compileOp (LExternal n) xs = externalOp n xs
 compileOp op _ = error "Unknown SOp: " ++ show op
 
 
-op f args = call f (compileVars args)
-
-cmp f args = call "if" [op f args, "1", "0"]
-
-ucmp ty f args = call "if" [call f (map (makeUnsigned ty . compileVar) args), "1", "0"] 
-
-charOp o args = call "integer->char" [call o (map charToInt args)]
-
-charShift True o [x, y] = call "integer->char" 
-                            [call "and"
-                              [call o [charToInt x, compileVar y]], full ITChar]
-charShift False o [x, y] = call "integer->char" [call o [charToInt x, compileVar y]]
-charToInt x = call "char->integer" [compileVar x]
-
-clamp :: IntTy -> String -> String
-clamp ITBig o = o
-clamp ty@(ITFixed _) o = call "modulo" [o, range ty]
-clamp it o = call "-" [call "modulo" [call "+" [halfrange it, o], range it], halfrange it]
-
--- Convert negative numbers to two-complements positive
--- TODO: take string instead of LVar
-makeUnsigned :: IntTy -> String -> String
--- TODO: ITBig doesn't really make sense here
-makeUnsigned ITBig x = x
-makeUnsigned ty x = slet "n" x (call "if" [call "negative?" ["n"],
-                                call "+" ["n", range ty],"n"])
-
-makeSigned :: IntTy -> String -> String
-makeSigned ty o = slet "n" o (call "if" [call ">" ["n", halfrange ty],
-                                call "-" ["n", range ty], "n"])
 
 externalOp :: Name -> [LVar] -> String
 externalOp n [_, x] | n == sUN "prim__readFile" = call "get-string-all" [compileVar x]

@@ -14,7 +14,6 @@ import Data.Maybe
 import Data.Char
 import Data.String(IsString, fromString)
 
-import Numeric (showHex)
 import qualified Data.Text as T
 
 import Chez.Compatibility (fixup, intercept)

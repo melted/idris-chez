@@ -11,6 +11,13 @@ import Data.List
 
 import Numeric (showHex)
 
+
+compileVar :: LVar -> String
+compileVar (Loc i) = loc i
+compileVar (Glob n) = sname n
+
+compileVars = map compileVar
+
 -- Size of numbers
 width (ITFixed IT8) = 8
 width (ITFixed IT16) = 16
@@ -45,6 +52,41 @@ car l = call "car" [l]
 cdr l = call "cdr" [l]
 lambda args body = sexp ["lambda", sexp args, body]
 apply f l = call "apply" [f, l]
+
+-- Scheme predicates return #t and #f and Idris
+-- expects 1 and 0. Fix it up.
+predicate p = call "if" [p, "1", "0"] 
+
+cmp f args = predicate $ op f args
+
+ucmp ty f args = predicate $ call f (map (makeUnsigned ty . compileVar) args) 
+
+op f args = call f (compileVars args)
+
+charOp o args = call "integer->char" [call o (map charToInt args)]
+
+charShift True o [x, y] = call "integer->char" 
+                            [call "and"
+                              [call o [charToInt x, compileVar y]], full ITChar]
+charShift False o [x, y] = call "integer->char" [call o [charToInt x, compileVar y]]
+charToInt x = call "char->integer" [compileVar x]
+
+clamp :: IntTy -> String -> String
+clamp ITBig o = o
+clamp ty@(ITFixed _) o = call "modulo" [o, range ty]
+clamp it o = call "-" [call "modulo" [call "+" [halfrange it, o], range it], halfrange it]
+
+-- Convert negative numbers to two-complements positive
+-- TODO: take string instead of LVar
+makeUnsigned :: IntTy -> String -> String
+-- TODO: ITBig doesn't really make sense here
+makeUnsigned ITBig x = x
+makeUnsigned ty x = slet "n" x (call "if" [call "negative?" ["n"],
+                                call "+" ["n", range ty],"n"])
+
+makeSigned :: IntTy -> String -> String
+makeSigned ty o = slet "n" o (call "if" [call ">" ["n", halfrange ty],
+                                call "-" ["n", range ty], "n"])
 
 sstr = schemeString 
 -- Translate a string literal to Scheme format
