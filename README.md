@@ -9,6 +9,7 @@ A Chez Scheme installation is a prerequisite to use idris-chez. It uses Chez Sch
 Run `cabal install` to install idris-chez.
 
 Then idris-chez is invoked when running idris with `--codegen chez` like
+
 ```idris --codegen chez example.idr -o example.ss```
 ```scheme --script example.ss```
 
