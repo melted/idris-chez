@@ -105,4 +105,13 @@
             (() (apply string-append xs))
             ((a) (set! xs (cons a xs))))))
 
+(define (idris-chez-init libs)
+    (let* ((mt (symbol->string (machine-type)))
+           (l (string-length mt))     
+           (pf (substring mt (- l 2) l))
+           (clib (case pf
+             (("nt") "msvcrt")
+             (else "libc"))))
+             (load-shared-object clib)
+             (map load-shared-object libs)))
 

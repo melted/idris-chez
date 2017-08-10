@@ -42,7 +42,7 @@ sname n = "|" ++ showCG n ++ "|"
 loc i = "v" ++ show i
 
 sexp xs = "(" ++ intercalate " " xs ++ ")" 
-defineFun name args body = sexp ["define", sexp (name:args), body] ++ "\n"
+defineFun name args body = sexp ["define", sexp (name:args), body] ++ "\n\n"
 call f args = sexp (f:args)
 
 slet n exp body = sexp ["let", sexp [sexp [n, exp]], body]

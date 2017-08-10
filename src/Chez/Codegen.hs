@@ -26,13 +26,14 @@ import Paths_idris_chez
 codegenChez :: CodeGenerator
 codegenChez ci = do let decls = fixup (simpleDecls ci)
                     let out = map doCodegen decls ++ [start]++["(exit 0)\n"]
+                    let init = "(idris-chez-init '())\n" -- TODO: pass flags here
                     let code = concat out
                     dir <- getDataDir
                     let top = "#!/usr/bin/env scheme-script\n" ++
                               "#!chezscheme\n" ++
                               "(import (chezscheme))\n"
                     rtslib <- readFile $ dir ++ "/rts/rts.ss"
-                    writeFile (outputFile ci) (top ++ rtslib ++ code)
+                    writeFile (outputFile ci) (top ++ rtslib ++ init ++ code)
 
 start :: String
 start = "(" ++ sname (MN 0 "runMain") ++ ")"
