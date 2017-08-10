@@ -53,8 +53,7 @@ compileExpr (SCase ctype var alts) = compileCase var alts
 compileExpr (SChkCase var alts) = compileCase var alts
 compileExpr (SProj var i) = sexp ["list-ref", compileVar var, show i]
 compileExpr (SConst c) = compileConst c
-compileExpr (SForeign name ret args) = compileForeign name ret args `fromMaybe`
-                                            intercept name ret args
+compileExpr (SForeign ret name args) = compileForeign ret name args `fromMaybe` intercept ret name args
 compileExpr (SOp prim args) = compileOp prim args
 compileExpr SNothing = "'()"
 compileExpr (SError what) = sexp ["error", sstr "idris", sstr what]
@@ -102,6 +101,6 @@ compileConst x = error $ "Unimplemented const " ++ show x
 
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign rty (FStr name) args = sexp $ [call "foreign-procedure"
-                                         [name, sexp (map (ffiType . fst) args), ffiType rty]] ++
+                                         [sstr name, sexp (map (ffiType . fst) args), ffiType rty]] ++
                                           map (compileVar . snd) args
 compileForeign _ _ _ = error "Illegal ffi call"
