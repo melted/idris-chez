@@ -59,7 +59,8 @@ user    0m0.030s
 sys     0m0.000s
 ```
 #### C backend
-```$ time ./pidigits.exe 10000 > /dev/null
+```
+$ time ./pidigits.exe 10000 > /dev/null
 Segmentation fault
 
 real    1m17.884s
