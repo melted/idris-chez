@@ -11,6 +11,7 @@ Run `cabal install` to install idris-chez.
 Then idris-chez is invoked when running idris with `--codegen chez` like
 
 ```idris --codegen chez example.idr -o example.ss```
+
 ```scheme --script example.ss```
 
 Files are compiled only to Scheme source for now, if desired they can be built into object files using Chez Scheme.
