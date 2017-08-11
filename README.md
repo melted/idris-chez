@@ -25,9 +25,18 @@ Files are compiled only to Scheme source for now, if desired they can be built i
 
 ## To Do
 
-* A Scheme FFI
-* Directives
+* Scheme FFI
 * Stabilization
+
+## Directives
+
+```%lib chez "<shared lib>"```
+
+In the chez backend `%lib` names dynamic libs that should be loaded at startup. The functions in that lib will then be available for FFI. See `test/samples/loadshared.idr` for an example.
+
+```%include chez "<any scheme code>"```
+
+In the chez backend `%include` includes arbitrary Scheme code into the resulting program. Chez Scheme's `load` or `import` can be used in an `%include` directive to actually include code from another file.     
 
 ## Benchmarks
 

@@ -3,6 +3,8 @@ module Main
 -- Yeah, this is for windows only 
 %lib chez "kernel32"
 
+%include chez "(display \"beep\")"
+
 beep : Int -> Int -> IO Int
 beep freq dur = foreign FFI_C "Beep" (Int -> Int -> IO Int) freq dur
 
