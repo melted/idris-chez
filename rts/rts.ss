@@ -102,7 +102,7 @@
 (define (idris-chez-stringbuilder)
     (let ((xs '()))
         (case-lambda 
-            (() (apply string-append xs))
+            (() (apply string-append (reverse xs)))
             ((a) (set! xs (cons a xs))))))
 
 (define (idris-chez-init libs)
