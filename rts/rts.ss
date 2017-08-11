@@ -21,23 +21,19 @@
         ((number? p) (= p 0))
         (else #f)))
 
-(define idris-chez-error-handler
-    (lambda (x)
-        (if (i/o-error? x)
-            (begin
-                (cond 
-                    ((i/o-read-error? x) (set! last-idris-io-error 1))
-                    ((i/o-write-error? x) (set! last-idris-io-error 2))
-                    ((i/o-file-does-not-exist-error? x) (set! last-idris-io-error 3))
-                    ((i/o-file-protection-error? x) (set! last-idris-io-error 4))
-                    (else (set! last-idris-io-error 5)))
-                void)
-            (raise x))))
+(define (idris-chez-error-handler x)
+    (cond 
+        ((i/o-read-error? x) (set! last-idris-io-error 1))
+        ((i/o-write-error? x) (set! last-idris-io-error 2))
+        ((i/o-file-does-not-exist-error? x) (set! last-idris-io-error 3))
+        ((i/o-file-protection-error? x) (set! last-idris-io-error 4))
+        (else (set! last-idris-io-error 5)))
+    0)
 
 (define (idris-chez-fileopen file mode)
     (guard
         ;; exception handler
-        (x (idris-chez-error-handler x))
+        (x ((i/o-error? x) (idris-chez-error-handler x)))
         ;; open file
         (idris-chez-open file mode)))
 
@@ -77,17 +73,19 @@
                 ch)))
 
 (define (idris-chez-popen cmd mode)
-    (with-exception-handler
-        idris-chez-error-handler
-        (lambda ()
-            (case mode
-                (("r" "w") (let* ((p (process cmd))
-                                  (i (car p))
-                                  (o (cadr p)))
-                                (case mode
-                                    (("r") (close-port o) i)
-                                    (("w") (close-port i) o)
-                (else 0))))))))
+    (guard
+        (x ((i/o-error? x) (idris-chez-error-handler x)))
+        (case mode
+            (("r" "w") (let* ((p (process cmd))
+                                (i (car p))
+                                (o (cadr p)))
+                            (case mode
+                                (("r") (close-port o) i)
+                                (("w") (close-port i) o)
+            (else 0)))))))
+
+(define (idris-chez-close-port p)
+    (if (port? p) (close-port p)))
 
 (define (idris-chez-get-all p)
     (if (port? p) (get-string-all p) ""))
