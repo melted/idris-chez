@@ -27,19 +27,20 @@ codegenChez :: CodeGenerator
 codegenChez ci = do let decls = fixup (simpleDecls ci)
                     let out = map doCodegen decls ++ [start]++["(exit 0)\n"]
                     let init = initCall (compileLibs ci)
+                    let include = intercalate "\n" (includes ci)
                     let code = concat out
                     dir <- getDataDir
                     let top = "#!/usr/bin/env scheme-script\n" ++
                               "#!chezscheme\n" ++
                               "(import (chezscheme))\n"
                     rtslib <- readFile $ dir ++ "/rts/rts.ss"
-                    writeFile (outputFile ci) (top ++ rtslib ++ init ++ code)
+                    writeFile (outputFile ci) (top ++ rtslib ++ init ++ include ++ code)
 
 initCall :: [String] -> String
 initCall libs = call "idris-chez-init" [call "list" (map sstr libs)] ++ "\n"
 
 start :: String
-start = "(" ++ sname (MN 0 "runMain") ++ ")"
+start = "(" ++ sname (MN 0 "runMain") ++ ")\n"
 
 
 doCodegen :: (Name, SDecl) -> String
