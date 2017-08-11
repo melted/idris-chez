@@ -37,7 +37,11 @@ halfrange ty = show $ 2^(width ty-1)
 -- Implementing a Scheme pretty printer is hard, and there are plenty of
 -- them out there, so don't bother to do nice output.
 sname :: Name -> String
-sname n = "|" ++ showCG n ++ "|"
+sname n = "|" ++ map legalize (showCG n) ++ "|"
+    where
+        legalize '#' = '\xa4'
+        legalize '|' = '\xa6'
+        legalize x = x
 
 loc i = "v" ++ show i
 
