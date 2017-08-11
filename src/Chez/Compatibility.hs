@@ -50,7 +50,7 @@ intercept _ (FStr "fileEOF") [(_, p)] = Just $ predicate (call "port-eof?" [comp
 -- This doesn't do exactly what fpoll does, but close enough
 intercept _ (FStr "fpoll") [(_, p)] = Just $ predicate (call "input-port-ready?" [compileVar p])
 intercept _ (FStr "do_popen") [(_, f), (_, m)] = Just $ predicate (call "idris-chez-popen" [compileVar f, compileVar m])
-intercept _ (FStr "idris_pclose") [(_, p)] = Just $ call "port-close" [compileVar p]
+intercept _ (FStr "idris_pclose") [(_, p)] = Just $ call "close-port" [compileVar p]
 -- Prelude.Interactive
 intercept _ (FStr "idris_numArgs") [] = Just $ call "length" [call "command-line" []]
 intercept _ (FStr "idris_getArg") [(_, n)] = Just $ call "list-ref" [call "command-line" [], compileVar n]
