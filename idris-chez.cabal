@@ -8,6 +8,10 @@ Cabal-Version:  >= 1.22
 
 Data-files:     rts/rts.ss
 
+source-repository head
+  type:     git
+  location: https://github.com/melted/idris-chez
+
 Executable idris-codegen-chez
   Main-is:        Main.hs
   hs-source-dirs: src
