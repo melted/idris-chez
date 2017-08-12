@@ -123,10 +123,11 @@ compileFFIVar (d, v) = compileFFIVar' (toFType d) v
 compileSchemeForeign ret (FStr name) args = handleSchemeReturn ret (call name (map compileSchemeVar args))
 
 -- TODO: If there are datatypes that need to translated when passing to Scheme, do it here
--- Right now, Bools will be incorrect.
 compileSchemeVar :: (FDesc, LVar) -> String
+compileSchemeVar (FCon c, x) | c == sUN "S_Bool" = call "=" ["1",call "car" [compileVar x]] 
 compileSchemeVar (_, x) = compileVar x
 
 -- TODO: If any return types needs marshalling, do it here
 handleSchemeReturn :: FDesc -> String -> String
-handleSchemeReturn ret c = c
+handleSchemeReturn (FCon c) s | c == sUN "S_Bool" = call "list" [call "if" [s, "1", "0"]]
+handleSchemeReturn ret s = s

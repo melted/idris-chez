@@ -25,7 +25,7 @@ Files are compiled only to Scheme source for now, if desired they can be built i
 
 ## To Do
 
-* Scheme FFI
+* Scheme FFI (In progress!)
 * Stabilization
 
 ## Directives
