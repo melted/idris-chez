@@ -158,3 +158,8 @@ toChezCType (FArith (ATInt (ITFixed IT16))) = "unsigned-16"
 toChezCType (FArith (ATInt (ITFixed IT32))) = "unsigned-32"
 toChezCType (FArith (ATInt (ITFixed IT64))) = "unsigned-64"
 toChezCType _ = "void*"
+
+isCType (FCon c) = head (showCG c) == 'C'   
+isCType (FApp c x) = head (showCG c) == 'C'
+
+-- Scheme ffi types

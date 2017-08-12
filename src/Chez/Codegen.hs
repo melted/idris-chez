@@ -58,7 +58,7 @@ compileExpr (SCase ctype var alts) = compileCase var alts
 compileExpr (SChkCase var alts) = compileCase var alts
 compileExpr (SProj var i) = sexp ["list-ref", compileVar var, show i]
 compileExpr (SConst c) = compileConst c
-compileExpr (SForeign ret name args) = compileForeign ret name args `fromMaybe` intercept ret name args
+compileExpr (SForeign ret name args) = handleForeign ret name args
 compileExpr (SOp prim args) = compileOp prim args
 compileExpr SNothing = "'()"
 compileExpr (SError what) = sexp ["error", sstr "idris", sstr what]
@@ -103,6 +103,9 @@ compileConst t | isTypeConst t = "#f"
 compileConst x = error $ "Unimplemented const " ++ show x
 
 
+handleForeign ret name args = if isCType ret
+                                 then compileForeign ret name args `fromMaybe` intercept ret name args
+                                 else compileSchemeForeign ret name args 
 
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign rty (FStr name) args = sexp $ [call "foreign-procedure"
@@ -116,3 +119,14 @@ compileFFIVar (d, v) = compileFFIVar' (toFType d) v
             compileFFIVar' FPtr x = call "ui-ptr" [compileVar x]
             compileFFIVar' (FArith (ATInt (ITFixed bw))) x = call ("ui" ++ show bw)  [compileVar x]
             compileFFIVar' _ x = compileVar x
+
+compileSchemeForeign ret (FStr name) args = handleSchemeReturn ret (call name (map compileSchemeVar args))
+
+-- TODO: If there are datatypes that need to translated when passing to Scheme, do it here
+-- Right now, Bools will be incorrect.
+compileSchemeVar :: (FDesc, LVar) -> String
+compileSchemeVar (_, x) = compileVar x
+
+-- TODO: If any return types needs marshalling, do it here
+handleSchemeReturn :: FDesc -> String -> String
+handleSchemeReturn ret c = c
