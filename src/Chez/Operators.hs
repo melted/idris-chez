@@ -129,7 +129,7 @@ compileOp op _ = error "Unknown SOp: " ++ show op
 
 
 externalOp :: Name -> [LVar] -> String
-externalOp n [_, x] | n == sUN "prim__readFile" = call "idris-chez-get-all" [compileVar x]
+externalOp n [_, x] | n == sUN "prim__readFile" = call "idris-chez-get-line" [compileVar x]
 externalOp n [_, len, x] | n == sUN "prim__readChars" = call "idris-chez-get-n" [compileVar len, compileVar x]
 externalOp n [_, x, s] | n == sUN "prim__writeFile" = call "idris-chez-putstring" [compileVar x, compileVar s]
 externalOp n [] | n == sUN "prim__stdin" = call "current-input-port" []
