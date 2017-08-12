@@ -138,13 +138,18 @@
     ((foreign-procedure "memmove" (void* void* size_t) void*) (ui-ptr (+ src srcoff)) (ui-ptr (+ dst dstoff)) size)
     void)
 
+(define (idris-chez-loadlib lib)
+    (guard
+        (x (else void)) ;; Accept failure to load a lib
+        (load-shared-object lib)))
+
 (define (idris-chez-init libs)
     (let* ((mt (symbol->string (machine-type)))
-           (l (string-length mt))     
-           (pf (substring mt (- l 2) l))
-           (clib (case pf
-             (("nt") "msvcrt")
-             (else "libc"))))
-             (load-shared-object clib)
-             (map load-shared-object libs)))
+            (l (string-length mt))
+            (pf (substring mt (- l 2) l))
+            (clib (case pf
+                (("nt") "msvcrt")
+                (else "libc"))))
+        (idris-chez-loadlib clib)
+        (map idris-chez-loadlib libs)))
 
