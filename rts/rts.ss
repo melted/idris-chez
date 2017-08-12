@@ -97,11 +97,46 @@
     (if (port? p) (put-string p s) void)
     0)
 
+;; Chez scheme passes unsigned types as signed to foreign functions
+;; but returns them as 0..2^n. Keep them as unsigned for simplicity
+;; but we must call these functions before using them.
+(define (ui bw)
+    (let* ((half (expt 2 (- bw 1)))
+          (full (* 2 half)))
+        (lambda (v)
+            (if (> v half)
+                (- v full)
+                v))))
+
+;; for a chez ftype
+(define (uit ty) (ui (* 8 (foreign-sizeof ty))))
+
+(define ui8 (ui 8))
+(define ui16 (ui 16))
+(define ui32 (ui 32))
+(define ui64 (ui 64))
+(define ui-ptr (uit 'void*))
+
+;; disable buffering for stdin and stdout
+;; using chez specific forms of the io functions
+(define (idris-chez-disable-buffering)
+    (current-input-port (standard-input-port 'none (make-transcoder (utf-8-codec))))
+    (current-output-port (standard-output-port 'none (make-transcoder (utf-8-codec)))))
+
 (define (idris-chez-stringbuilder)
     (let ((xs '()))
         (case-lambda 
             (() (apply string-append (reverse xs)))
             ((a) (set! xs (cons a xs))))))
+
+;; TODO: memoize foreign functions (that goes for compileForeign too)
+(define (idris-chez-memset ptr off val size)
+    ((foreign-procedure "memset" (void* int size_t) void*) (ui-ptr (+ ptr off)) val size)
+    void)
+
+(define (idris-chez-memmove src srcoff dst dstoff size)
+    ((foreign-procedure "memmove" (void* void* size_t) void*) (ui-ptr (+ src srcoff)) (ui-ptr (+ dst dstoff)) size)
+    void)
 
 (define (idris-chez-init libs)
     (let* ((mt (symbol->string (machine-type)))

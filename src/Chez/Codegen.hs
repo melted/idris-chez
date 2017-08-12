@@ -107,5 +107,12 @@ compileConst x = error $ "Unimplemented const " ++ show x
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
 compileForeign rty (FStr name) args = sexp $ [call "foreign-procedure"
                                          [sstr name, sexp (map (ffiType . fst) args), ffiType rty]] ++
-                                          map (compileVar . snd) args
+                                          map compileFFIVar args
 compileForeign _ _ _ = error "Illegal ffi call"
+
+compileFFIVar :: (FDesc, LVar) -> String
+compileFFIVar (d, v) = compileFFIVar' (toFType d) v
+        where
+            compileFFIVar' FPtr x = call "ui-ptr" [compileVar x]
+            compileFFIVar' (FArith (ATInt (ITFixed bw))) x = call ("ui" ++ show bw)  [compileVar x]
+            compileFFIVar' _ x = compileVar x

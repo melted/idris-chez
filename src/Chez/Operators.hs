@@ -137,8 +137,9 @@ externalOp n [] | n == sUN "prim__stdout" = call "current-output-port" []
 externalOp n [] | n == sUN "prim__stderr" = call "current-error-port" []
 externalOp n [_] | n == sUN "prim__vm" = "'vm" -- just a token, let's elaborate if needed
 externalOp n [] | n == sUN "prim__null" = "0"
-externalOp n [x, y] | n == sUN "prim__eqPtr" = call "eq?" [compileVar x, compileVar y]
+externalOp n [x, y] | n == sUN "prim__eqPtr" = call "eqv?" [compileVar x, compileVar y]
 externalOp n [x, y] | n == sUN "prim__eqManagedPtr" = call "eq?" [car (compileVar x), car (compileVar y)]
+-- TODO: Fix managed pointers
 externalOp n [x, y] | n == sUN "prim__registerPtr" = compileVar x
 externalOp n [_, x, y] | n == sUN "prim__peek8" = call "foreign-ref" ["'unsigned-8", compileVar x, compileVar y]
 externalOp n [_, x, y, z] | n == sUN "prim__poke8" = call "foreign-set!" ["'unsigned-8", compileVar x, compileVar y, compileVar z]
@@ -154,6 +155,8 @@ externalOp n [_, x, y] | n == sUN "prim__peekSingle" = call "foreign-ref" ["'flo
 externalOp n [_, x, y, z] | n == sUN "prim__pokeSingle" = call "foreign-set!" ["'float", compileVar x, compileVar y, compileVar z]
 externalOp n [_, x, y] | n == sUN "prim__peekDouble" = call "foreign-ref" ["'double", compileVar x, compileVar y]
 externalOp n [_, x, y, z] | n == sUN "prim__pokeDouble" = call "foreign-set!" ["'double", compileVar x, compileVar y, compileVar z]
+
+-- TODO: Fix managed pointers
 externalOp n [x] | n == sUN "prim__asPtr" = call "car" [compileVar x]
 externalOp n [] | n == sUN "prim__sizeofPtr" = call "foreign-sizeof" ["'void*"]
 externalOp n [x, y] | n == sUN "prim__ptrOffset" = call "+" [compileVar x, compileVar y]
