@@ -26,6 +26,7 @@ Files are compiled only to Scheme source for now, if desired they can be built i
 ## To Do
 
 * Scheme FFI (In progress!)
+* Map some common but non-primitive Idris types like lists and bools to the corresponding primitives in Scheme.
 * Stabilization
 
 ## Directives
