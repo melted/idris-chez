@@ -85,7 +85,7 @@
             (else 0)))))))
 
 (define (idris-chez-close-port p)
-    (if (port? p) (close-port p)))
+    (when (port? p) (close-port p)))
 
 (define (idris-chez-get-all p)
     (if (port? p) (get-string-all p) ""))

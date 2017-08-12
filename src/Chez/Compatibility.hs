@@ -38,19 +38,17 @@ intercept _ (FStr "idris_getString") [(_, _), (_, p)] = Just $ call (compileVar 
 intercept _ (FStr "fileOpen") [(_, file), (_, mode)] = 
                             Just $ call "idris-chez-fileopen" [compileVar file, compileVar mode]
 intercept _ (FStr "fileSize") [(_, p)] = Just $ call "file-length" [compileVar p]
-
 intercept _ (FStr "idris_showerror") [(_, i)] = Just $ call "idris-chez-showerror" [compileVar i]
 intercept _ (FStr "idris_mkFileError") [(_, p)] = Just $ call "idris-chez-makefileerror" []
-intercept _ (FStr "fileSize") [(_, p)] = Just $ call "file-length" [compileVar p]
 intercept _ (FStr "fileError") [(_, p)] = Just $ predicate $ call "idris-chez-fileerror" [compileVar p]
-intercept _ (FStr "fileClose") [(_, p)] = Just $ call "close-port" [compileVar p]
+intercept _ (FStr "fileClose") [(_, p)] = Just $ call "idris-chez-close-port" [compileVar p]
 intercept _ (FStr "idris_fgetc") [(_, p)] = Just $ call "idris-chez-fgetc" [compileVar p]
 intercept _ (FStr "idris_fflush") [(_, p)] = Just $ call "flush-output-port" [compileVar p]
 intercept _ (FStr "fileEOF") [(_, p)] = Just $ predicate (call "port-eof?" [compileVar p])
 -- This doesn't do exactly what fpoll does, but close enough
 intercept _ (FStr "fpoll") [(_, p)] = Just $ predicate (call "input-port-ready?" [compileVar p])
 intercept _ (FStr "do_popen") [(_, f), (_, m)] = Just $ predicate (call "idris-chez-popen" [compileVar f, compileVar m])
-intercept _ (FStr "idris_pclose") [(_, p)] = Just $ call "close-port" [compileVar p]
+intercept _ (FStr "idris_pclose") [(_, p)] = Just $ call "idris-chez-close-port" [compileVar p]
 -- Prelude.Interactive
 intercept _ (FStr "idris_numArgs") [] = Just $ call "length" [call "command-line" []]
 intercept _ (FStr "idris_getArg") [(_, n)] = Just $ call "list-ref" [call "command-line" [], compileVar n]
