@@ -108,10 +108,32 @@ handleForeign ret name args = if isCType ret
                                  else compileSchemeForeign ret name args 
 
 compileForeign :: FDesc -> FDesc -> [(FDesc, LVar)] -> String
-compileForeign rty (FStr name) args = sexp $ [call "foreign-procedure"
-                                                    [sstr name, sexp (map (ffiType . fst) args), ffiType rty]]
-                                                     ++ map (compileVar . snd) args
+compileForeign rty (FStr ('&':name)) [] = call "foreign-entry" [sstr name]
+compileForeign rty (FStr "%dynamic") (f:args) = foreignProcedure (compileVar $ snd f) rty args
+compileForeign rty (FStr "%wrapper") (f:args) = makeWrapper (fst f) (compileVar (snd f))
+compileForeign rty (FStr name) args = foreignProcedure (sstr name) rty args
+
 compileForeign _ _ _ = error "Illegal ffi call"
+
+foreignProcedure proc rty args = handleFFIReturn (toFType rty) $
+    sexp $ [call "foreign-procedure" [proc, sexp (map (ffiType . fst) args), ffiType rty]]
+        ++ map compileFFIVar args
+
+compileFFIVar (fd, x) | isFunction fd = makeWrapper fd (compileVar x)
+compileFFIVar (_,x) = compileVar x
+
+handleFFIReturn :: FType -> String -> String
+handleFFIReturn FUnit s = call "begin" [s, "'()"]
+handleFFIReturn _ s = s
+
+makeWrapper fd s = slet "ff" callable body  
+  where
+    (rty, args) = getSignature fd
+    callable = call "foreign-callable" [wrapper, sexp args, rty]
+    wrapper = call "idris-chez-make-wrapper" [s, if rty == "void" then "#t" else "#f"] 
+    body = call "lock-object" ["ff"] ++ call "foreign-callable-entry-point" ["ff"]
+
+-- Scheme FFI
 
 compileSchemeForeign ret (FStr name) args = handleSchemeReturn ret (call name (map compileSchemeVar args))
 

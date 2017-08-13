@@ -13,13 +13,25 @@
           (end (min l (+ b x))))
             (substring s b end)))
 
+(define (idris-chez-make-wrapper f v?)
+    (lambda args
+        (let loop ((a args) (fun f))
+            (let ((v (if (null? a) '() (car a))))
+                (let ((out (|{APPLY_0}| fun v)))
+                    (if (idris-chez-isfcon? out)
+                        (loop (if (null? a) '() (cdr a)) out)
+                        (if v? '() out)))))))
+
 (define last-idris-io-error #f)
 (define idris-errored-ports '())
 
 (define (idris-chez-isnull p)
-    (cond 
+    (cond
         ((number? p) (= p 0))
         (else #f)))
+
+(define (idris-chez-isfcon? c)
+    (and (list? c) (number? (car c)) (> (car c) 65535)))
 
 (define (idris-chez-error-handler x)
     (cond 

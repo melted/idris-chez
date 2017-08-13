@@ -56,6 +56,7 @@ car l = call "car" [l]
 cdr l = call "cdr" [l]
 lambda args body = sexp ["lambda", sexp args, body]
 apply f l = call "apply" [f, l]
+quote s = "'" ++ s
 
 -- Scheme predicates return #t and #f and Idris
 -- expects 1 and 0. Fix it up.
@@ -148,7 +149,7 @@ toChezCType FString = "utf-8"
 toChezCType FPtr = "void*"
 toChezCType FManagedPtr = "void*"
 toChezCType FCData = "void*"
-toChezCType FUnit = "void*"
+toChezCType FUnit = "void"
 toChezCType FAny = "void*"
 toChezCType (FArith ATFloat) = "double"
 toChezCType (FArith (ATInt ITChar)) = "wchar_t"
@@ -161,5 +162,29 @@ toChezCType _ = "void*"
 
 isCType (FCon c) = head (showCG c) == 'C'   
 isCType (FApp c x) = head (showCG c) == 'C'
+
+isFunction fd = case toFType fd of
+    FFunction -> True
+    FFunctionIO -> True
+    _ -> False
+
+getSignature :: FDesc -> (String, [String])
+getSignature desc = (fst $ rty desc, map fst $ args desc)
+    where
+        rty (FApp c [_,ty])
+            | c == sUN "C_FnBase" = (ffiType ty, ty)
+            | c == sUN "C_FnIO" = (ffiType ty, ty)
+            | c == sUN "C_FnT" = rty ty
+        rty (FApp c [_,_,ty,fn])
+            | c == sUN "C_Fn" = rty fn
+        rty x = ("", x)
+        args (FApp c [_,ty])
+            | c == sUN "C_FnBase" = []
+            | c == sUN "C_FnIO" = []
+            | c == sUN "C_FnT" = args ty
+        args (FApp c [_,_,ty,fn])
+            | toFType ty == FUnit = []
+            | c == sUN "C_Fn" = (ffiType ty, ty) : args fn
+        args _ = []
 
 -- Scheme ffi types
