@@ -97,25 +97,6 @@
     (if (port? p) (put-string p s) void)
     0)
 
-;; Chez scheme passes unsigned types as signed to foreign functions
-;; but returns them as 0..2^n. Keep them as unsigned for simplicity
-;; but we must call these functions before using them.
-(define (ui bw)
-    (let* ((half (expt 2 (- bw 1)))
-          (full (* 2 half)))
-        (lambda (v)
-            (if (> v half)
-                (- v full)
-                v))))
-
-;; for a chez ftype
-(define (uit ty) (ui (* 8 (foreign-sizeof ty))))
-
-(define ui8 (ui 8))
-(define ui16 (ui 16))
-(define ui32 (ui 32))
-(define ui64 (ui 64))
-(define ui-ptr (uit 'void*))
 
 ;; disable buffering for stdin and stdout
 ;; using chez specific forms of the io functions

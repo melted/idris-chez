@@ -23,7 +23,7 @@ Files are compiled only to Scheme source for now, if desired they can be built i
 * A compatibility layer for the base libraries dependence on the C rts. for example, the C calls in Prelude.Files are substituted by Scheme calls.
 * Chez Scheme provides excellent stack handling and garbage collection 
 
-## To Do
+## To do
 
 * Scheme FFI (In progress!)
 * Map some common but non-primitive Idris types like lists and bools to the corresponding primitives in Scheme.
