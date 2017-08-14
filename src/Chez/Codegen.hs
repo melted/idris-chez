@@ -130,7 +130,7 @@ makeWrapper fd s = slet "ff" callable body
   where
     (rty, args) = getSignature fd
     callable = call "foreign-callable" [wrapper, sexp args, rty]
-    wrapper = call "idris-chez-make-wrapper" [s, if rty == "void" then "#t" else "#f"] 
+    wrapper = call "idris-chez-make-wrapper" [s] 
     body = call "lock-object" ["ff"] ++ call "foreign-callable-entry-point" ["ff"]
 
 -- Scheme FFI

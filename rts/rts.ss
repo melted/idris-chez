@@ -13,14 +13,14 @@
           (end (min l (+ b x))))
             (substring s b end)))
 
-(define (idris-chez-make-wrapper f v?)
+(define (idris-chez-make-wrapper f)
     (lambda args
         (let loop ((a args) (fun f))
             (let ((v (if (null? a) '() (car a))))
                 (let ((out (|{APPLY_0}| fun v)))
                     (if (idris-chez-isfcon? out)
                         (loop (if (null? a) '() (cdr a)) out)
-                        (if v? '() out)))))))
+                        out))))))
 
 (define last-idris-io-error #f)
 (define idris-errored-ports '())
