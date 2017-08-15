@@ -62,7 +62,7 @@
         (("w+") (open-file-input/output-port file (file-options no-fail) bm tc))
         (("w+x") (open-file-input/output-port file (file-options) bm tc))
         (("a+") (open-file-input/output-port file (file-options no-fail no-truncate) bm tc))
-        (else (raise (make-io-error)))))
+        (else (raise (make-i/o-error)))))
 
 (define (idris-chez-getfileerror)
     (if (last-idris-io-error)
