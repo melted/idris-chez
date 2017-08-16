@@ -74,8 +74,8 @@
 
 (define (idris-chez-getfileerror)
     (if (last-idris-io-error)
-        (if (< last-idris-io-error 5) (list last-idris-io-error 0) (list 0 1))
-        (list 0 0)))
+        (if (< last-idris-io-error 5) (make-con last-idris-io-error 0) (make-con 0 1))
+        (make-con 0 0)))
 
 (define (idris-chez-showerror n)
     (case n
