@@ -108,7 +108,10 @@
     (when (port? p) (close-port p)))
 
 (define (idris-chez-get-line p)
-    (if (port? p) (get-line p) ""))
+    (if (and (port? p) (not (port-eof? p))) 
+        (let ((str (get-line p)))
+            (string-append str "\n"))
+        ""))
 
 (define (idris-chez-get-n n p)
     (if (port? p) (get-string-n p n) ""))
@@ -132,11 +135,11 @@
 
 ;; TODO: memoize foreign functions (that goes for compileForeign too)
 (define (idris-chez-memset ptr off val size)
-    ((foreign-procedure "memset" (void* int size_t) void*) (ui-ptr (+ ptr off)) val size)
+    ((foreign-procedure "memset" (void* int size_t) void*) (+ ptr off) val size)
     void)
 
 (define (idris-chez-memmove src srcoff dst dstoff size)
-    ((foreign-procedure "memmove" (void* void* size_t) void*) (ui-ptr (+ src srcoff)) (ui-ptr (+ dst dstoff)) size)
+    ((foreign-procedure "memmove" (void* void* size_t) void*) (+ src srcoff) (+ dst dstoff) size)
     void)
 
 (define (idris-chez-loadlib lib)
