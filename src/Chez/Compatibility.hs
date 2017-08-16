@@ -19,7 +19,6 @@ import Chez.Util
 -- the Scheme functions for file handling. The CFFI usage of "malloc"
 -- and friends should as clearly be left as is.
 
--- TODO: implement it
 
 -- Change the sdecls, this is used when we need
 -- to be aware of the context.
