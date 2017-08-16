@@ -53,10 +53,10 @@ compileExpr (SApp _ n args) = call (sname n) (compileVars args)
 compileExpr (SLet var exp body) = slet (compileVar var) (compileExpr exp) (compileExpr body)
 compileExpr (SUpdate var exp) = compileExpr exp
 -- TODO: SCon check for scheme primitive types and use them instead
-compileExpr (SCon _ t n xs) = sexp ("list":show t:compileVars xs)
+compileExpr (SCon _ t n xs) = call "make-con" [show t, call "list" (compileVars xs)]
 compileExpr (SCase ctype var alts) = compileCase var alts
 compileExpr (SChkCase var alts) = compileCase var alts
-compileExpr (SProj var i) = sexp ["list-ref", compileVar var, show i]
+compileExpr (SProj var i) = call "list-ref" [call "con-vals" [compileVar var], show i]
 compileExpr (SConst c) = compileConst c
 compileExpr (SForeign ret name args) = handleForeign ret name args
 compileExpr (SOp prim args) = compileOp prim args
@@ -77,9 +77,11 @@ compileCase var alts = cond $ map (compileAlt var) (salts alts)
 
 -- TODO: Special case scheme primitive types
 compileAlt :: LVar -> SAlt -> String
-compileAlt var (SConCase lv t n args body) = sexp [call "=" [car $ compileVar var,show t], project 1 lv args body]
+compileAlt var (SConCase lv t n args body) =
+             sexp [call "=" [call "con-tag" [compileVar var],show t], project 1 lv args body]
     where
-        project i v ns body = apply (lambda (map (loc . fst) (zip [v..] ns)) (compileExpr body)) (cdr $ compileVar var) 
+        project i v ns body = apply (lambda (map (loc . fst) (zip [v..] ns))
+                                         (compileExpr body)) (call "con-vals" [compileVar var]) 
 compileAlt var (SConstCase c body) = sexp [compileCompare var c, compileExpr body]
 compileAlt _ (SDefaultCase body) = sexp ["else", compileExpr body]
 

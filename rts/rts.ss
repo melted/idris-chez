@@ -1,11 +1,15 @@
 ;; The runtime library for idris-chez
 
+(define-record-type con (fields tag vals))
+
+;; Implements the LSystemInfo primitive
 (define (idris-systeminfo n)
     (case n 
         ((0) "chez")
         ((1) (symbol->string (machine-type)))
         ((2) "")))
 
+;; Implements the substring primitive
 (define (idris-substring off len s) 
     (let* ((l (string-length s))
           (b (max 0 off))
@@ -13,6 +17,8 @@
           (end (min l (+ b x))))
             (substring s b end)))
 
+;; Wrap an idris function application in a function for FFI
+;; TODO: Check for more args and use {APPLY2_0} in that case
 (define (idris-chez-make-wrapper f)
     (lambda args
         (let loop ((a args) (fun f))
@@ -22,7 +28,9 @@
                         (loop (if (null? a) '() (cdr a)) out)
                         out))))))
 
+;; Last error. errno substitute.
 (define last-idris-io-error #f)
+;; Id's of errored ports
 (define idris-errored-ports '())
 
 (define (idris-chez-isnull p)
@@ -31,7 +39,7 @@
         (else #f)))
 
 (define (idris-chez-isfcon? c)
-    (and (list? c) (number? (car c)) (> (car c) 65535)))
+    (and (con? c) (> (con-tag c) 65535)))
 
 (define (idris-chez-error-handler x)
     (cond 
