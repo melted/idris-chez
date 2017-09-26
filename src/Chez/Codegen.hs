@@ -55,7 +55,8 @@ compileExpr :: SExp -> String
 compileExpr (SV v) = compileVar v
 compileExpr (SApp _ n args) = call (sname n) (compileVars args)
 compileExpr (SLet var exp body) = slet (compileVar var) (compileExpr exp) (compileExpr body)
-compileExpr (SUpdate var exp) = compileExpr exp
+compileExpr (SUpdate var exp) = call "begin" [call "set!" [compileVar var, compileExpr exp],
+                                              compileVar var]  
 -- TODO: SCon check for scheme primitive types and use them instead
 compileExpr (SCon _ t n xs) = call "make-con" [show t, call "list" (compileVars xs)]
 compileExpr (SCase ctype var alts) = compileCase var alts
