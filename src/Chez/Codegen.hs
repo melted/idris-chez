@@ -15,11 +15,9 @@ import Data.Char
 import Data.String(IsString, fromString)
 
 import qualified Data.Text as T
-import qualified Data.Set as S
 
 import Chez.Compatibility (fixup, intercept)
 import Chez.Operators
-import Chez.Optimization
 import Chez.Util
 
 import Paths_idris_chez
@@ -27,9 +25,7 @@ import Paths_idris_chez
 
 codegenChez :: CodeGenerator
 codegenChez ci = do let decls = fixup (simpleDecls ci)
-                    let used = usedDecls [MN 0 "runMain"] decls
-                    let trimmed = filter (\(x,_) -> x `S.member` used) decls
-                    let out = map doCodegen trimmed ++ [start]++["(exit 0)\n"]
+                    let out = map doCodegen decls ++ [start]++["(exit 0)\n"]
                     let init = initCall (compileLibs ci)
                     let include = intercalate "\n" (includes ci)
                     let code = concat out

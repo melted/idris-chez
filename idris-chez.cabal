@@ -30,8 +30,7 @@ Executable idris-codegen-chez
     Chez.Codegen,
     Chez.Compatibility,
     Chez.Operators,
-    Chez.Optimization,
-    Chez.Util,
+    Chez.Util
     Paths_idris_chez
 
   if os(windows)
