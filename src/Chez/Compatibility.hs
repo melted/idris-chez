@@ -70,6 +70,10 @@ intercept _ (FStr "idris_time") [] = Just $ call "time-second" [call "current-ti
 --    TODO: Implement
 -- Data.Buffer
 --    TODO: Implement
+-- Data.IORef
+intercept _ (FStr "idris_newRef") [(_, r)] = Just $ call "box" [compileVar r] 
+intercept _ (FStr "idris_readRef") [(_, r)] = Just $ call "unbox" [compileVar r]
+intercept _ (FStr "idris_writeRef") [(_, b), (_, r)] = Just $ call "set-box!" [compileVar b, compileVar r]
 
 -- contrib
 -- CFFI: Fine as is
